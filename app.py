@@ -1,6 +1,15 @@
 from flask import Flask, jsonify, render_template
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
+import os
+import asyncio
+
+
+
+load_dotenv()
+ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+
 
 current_year = datetime.now().year
 
@@ -21,17 +30,39 @@ class FinancialDataTypeSwitch:
         self.financial_data_aggregate = {}
         # For 4 years data
         self.year_range = range(4)
+        self.errorState = []
+        self.current_company = None
+
+    def add_error_to_error_state(self, error):
+        self.errorState.append(error)
+
+    def set_current_company(self, company):
+        self.current_company = company
 
     def add_to_financial_data_aggregate(self, key, value):
-        self.financial_data_aggregate[key] = value
+        if self.current_company not in self.financial_data_aggregate:
+            self.financial_data_aggregate[self.current_company] = {}
+        self.financial_data_aggregate[self.current_company][key] = value
 
     def get_financial_data_aggregate(self):
         return self.financial_data_aggregate
 
-    def process_data(self, data_type, data):
+    async def get_data(self, function_type, symbol):
+        api_key = ALPHA_VANTAGE_API_KEY
+        api_url = f'https://www.alphavantage.co/query?function={function_type}&symbol={symbol}&apikey={api_key}'
+        response = requests.get(api_url)
+        self.set_current_company(symbol)
+        if response.status_code == 200:
+            data = response.json()
+            self.process_data(function_type, data)
+        else:
+            error = jsonify({'error': f'Failed to fetch {function_type} data for {symbol}'})
+            self.add_error_to_error_state(error)
+
+    def process_data(self, function_type, data):
         default = "Incorrect data"
 
-        return getattr(self, str(data_type).lower(), lambda: default)(data)
+        return getattr(self, str(function_type).lower(), lambda: default)(data)
 
     def cash_flow(self, data):
         cash_flow_keys = ['operatingCashflow', 'capitalExpenditures']
@@ -48,23 +79,16 @@ financial_data_aggregator = FinancialDataTypeSwitch()
 
 
 @app.route('/')
-def get_cash_flow():
-    api_key = 'YOQ67R5EHDTUAZFW'
-    function_type = 'CASH_FLOW'
-    symbol = 'META'
-
-    api_url = f'https://www.alphavantage.co/query?function={function_type}&symbol={symbol}&apikey={api_key}'
-    response = requests.get(api_url)
-
-    if response.status_code == 200:
-        data = response.json()
-
-        financial_data_aggregator.process_data(function_type, data)
-
-        return render_template('data.html', data=financial_data_aggregator.financial_data_aggregate)
-    else:
-        return jsonify({'error': 'Failed to fetch weather data'})
-
+async def get_stuff():
+    data = 'None'
+    symbols = ['AAPL', 'META', 'IBM']
+    function_types = ['CASH_FLOW']
+    tasks = []
+    for function_type in function_types:
+        for symbol in symbols:
+            tasks.append(financial_data_aggregator.get_data(function_type, symbol))
+    await asyncio.gather(*tasks)
+    return render_template('data.html', data=financial_data_aggregator.financial_data_aggregate)
 
 if __name__ == '__main__':
     app.run()
