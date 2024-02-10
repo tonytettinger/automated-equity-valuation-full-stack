@@ -79,8 +79,7 @@ financial_data_aggregator = FinancialDataTypeSwitch()
 
 
 @app.route('/')
-async def get_stuff():
-    data = 'None'
+async def main_page_finance_data():
     symbols = ['AAPL', 'META', 'IBM']
     function_types = ['CASH_FLOW']
     tasks = []
