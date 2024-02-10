@@ -5,11 +5,8 @@ from dotenv import load_dotenv
 import os
 import asyncio
 
-
-
 load_dotenv()
 ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
-
 
 current_year = datetime.now().year
 
@@ -23,6 +20,14 @@ def create_empty_dict(keys_array):
 def add_years_data(financial_data_type, current_year_data):
     for key in financial_data_type.keys():
         financial_data_type[key].append(current_year_data[key])
+
+
+def get_sub_category_data(*, data, year_range, keys):
+    sub_category_dict = create_empty_dict(keys)
+    for idx in year_range:
+        current_year_data = data['annualReports'][idx]
+        add_years_data(sub_category_dict, current_year_data)
+    return sub_category_dict
 
 
 class FinancialDataTypeSwitch:
@@ -65,14 +70,17 @@ class FinancialDataTypeSwitch:
         return getattr(self, str(function_type).lower(), lambda: default)(data)
 
     def cash_flow(self, data):
-        cash_flow_keys = ['operatingCashflow', 'capitalExpenditures']
+        keys = ['operatingCashflow', 'capitalExpenditures']
+        get_sub_category_data(data=data, year_range=self.year_range, keys=keys)
 
-        operating_cash_flows = create_empty_dict(cash_flow_keys)
-        for idx in self.year_range:
-            current_year_data = data['annualReports'][idx]
-            add_years_data(operating_cash_flows, current_year_data)
+        self.add_to_financial_data_aggregate('CASH_FLOW',
+                                             get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
 
-        self.add_to_financial_data_aggregate('operating_cash_flows', operating_cash_flows)
+    def income_statement(self, data):
+        keys = ['totalRevenue', 'netIncome']
+        get_sub_category_data(data=data, year_range=self.year_range, keys=keys)
+        self.add_to_financial_data_aggregate('INCOME_STATEMENT',
+                                             get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
 
 
 financial_data_aggregator = FinancialDataTypeSwitch()
@@ -81,13 +89,14 @@ financial_data_aggregator = FinancialDataTypeSwitch()
 @app.route('/')
 async def main_page_finance_data():
     symbols = ['AAPL', 'META', 'IBM']
-    function_types = ['CASH_FLOW']
+    function_types = ['CASH_FLOW', 'INCOME_STATEMENT']
     tasks = []
     for function_type in function_types:
         for symbol in symbols:
             tasks.append(financial_data_aggregator.get_data(function_type, symbol))
     await asyncio.gather(*tasks)
     return render_template('data.html', data=financial_data_aggregator.financial_data_aggregate)
+
 
 if __name__ == '__main__':
     app.run()
