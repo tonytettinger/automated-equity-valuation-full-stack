@@ -26,6 +26,7 @@ def get_sub_category_data(*, data, year_range, keys):
 class FinancialDataTypeSwitch:
     def __init__(self):
         self.financial_data_aggregate = {}
+        self.global_data = {}
         # For 4 years data
         self.year_range = range(4)
         self.errorState = []
@@ -46,6 +47,9 @@ class FinancialDataTypeSwitch:
     def get_financial_data_aggregate(self):
         return self.financial_data_aggregate
 
+    def get_global_data(self):
+        return self.global_data
+
     async def get_data(self, function_type, symbol):
         api_url = f'https://www.alphavantage.co/query?function={function_type}&symbol={symbol}&apikey={self.api_key}'
         response = requests.get(api_url)
@@ -58,7 +62,7 @@ class FinancialDataTypeSwitch:
             self.add_error_to_error_state(error)
 
     async def get_overview_data(self, symbol):
-        api_url = f'https://www.alphafvantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={self.api_key}'
+        api_url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={self.api_key}'
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
@@ -80,14 +84,14 @@ class FinancialDataTypeSwitch:
             error = jsonify({'error': f'Failed to fetch overview data for {symbol}'})
             self.add_error_to_error_state(error)
 
-    async def get_treasury_data(self, symbol):
-        api_url = f'https://www.alphavantage.co/query?function=TREASURY_YIELD&symbol={symbol}&apikey={self.api_key}'
+    async def get_treasury_data(self):
+        api_url = f'https://www.alphavantage.co/query?function=TREASURY_YIELD&apikey={self.api_key}'
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
-            self.add_to_financial_data_aggregate('TREASURY_YIELD_10_YEARS', )
+            self.global_data['TREASURY_YIELD'] = data['data'][0]['value']
         else:
-            error = jsonify({'error': f'Failed to fetch treasury data for {symbol}'})
+            error = jsonify({'error': f'Failed to fetch treasury data'})
             self.add_error_to_error_state(error)
 
     def process_data(self, function_type, data):
