@@ -58,11 +58,12 @@ class FinancialDataTypeSwitch:
             self.add_error_to_error_state(error)
 
     async def get_overview_data(self, symbol):
-        api_url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={self.api_key}'
+        api_url = f'https://www.alphafvantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={self.api_key}'
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
             self.add_to_financial_data_aggregate('BETA', data['Beta'])
+            self.add_to_financial_data_aggregate('MARKET_CAPITALIZATION', data['MarketCapitalization'])
         else:
             error = jsonify({'error': f'Failed to fetch overview data for {symbol}'})
             self.add_error_to_error_state(error)
@@ -102,13 +103,13 @@ class FinancialDataTypeSwitch:
                                              get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
 
     def income_statement(self, data):
-        keys = ['totalRevenue', 'netIncome', 'incomeBeforeTax', 'interestAndDebtExpense', 'incomeTaxExpense']
+        keys = ['totalRevenue', 'netIncome', 'incomeBeforeTax', 'interestAndDebtExpense', 'incomeTaxExpense', 'interestExpense']
         get_sub_category_data(data=data, year_range=self.year_range, keys=keys)
         self.add_to_financial_data_aggregate('INCOME_STATEMENT',
                                              get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
 
     def balance_sheet(self, data):
-        keys = ['commonStockSharesOutstanding']
+        keys = ['commonStockSharesOutstanding','shortLongTermDebtTotal']
         get_sub_category_data(data=data, year_range=self.year_range, keys=keys)
         self.add_to_financial_data_aggregate('BALANCE_SHEET',
                                              get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
