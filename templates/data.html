@@ -9,12 +9,22 @@
 <body>
     <h1>Financial Data Collection</h1>
     <div>Calculations</div>
-    <div>{{ calcs }}</div>
     <ul>
         {%for company in data%}
         <li>
             <h2>{{company}}</h2>
             <div>{{ data[company] }}</div>
+        </li>
+        {%endfor%}
+    </ul>
+
+  <ul>
+        {%for company in signals%}
+        <li>
+            <h2>{{company}} DIFF VALUE IN BILLIONS</h2>
+            <div>DCF is: {{ signals[company]['DCF']/1E9}}</div>
+            <div>The market cap is: {{ signals[company]['MARKET_CAP']/1E9 }}</div>
+            <div>Difference between market cap and DCF: {{ signals[company]['DIFF']/1E9}}</div>
         </li>
         {%endfor%}
     </ul>
