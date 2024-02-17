@@ -1,8 +1,10 @@
+from operator import getitem
+
 from flask import Flask, render_template
 from datetime import datetime
 import asyncio
 from financial_data_aggregator import *
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 load_dotenv()
 
@@ -32,7 +34,7 @@ def calculate_percentage_difference(array):
     if average <= 0:
         maxDif = max(percentage_differences)
         if maxDif < 0:
-            return 1
+            return 0
         else:
             return max(percentage_differences)
     else:
@@ -52,13 +54,23 @@ def generate_interest_rates(return_multiplier, total_periods):
     print('rates',rates)
     return rates
 
+def get_nested_value(symbol, dict):
+    return dict[symbol]["nested_value"]
 
 class CalculateSignal:
     def __init__(self):
+        self.sortedSignals = {}
         self.signals = defaultdict(lambda: defaultdict(dict))
 
     def get_signal(self):
         return self.signals
+
+    def get_sorted_dict(self):
+        return self.sortedSignals['MARKET_CAP']
+
+    def add_sorted_dict_by_category(self, category):
+        self.sortedSignals[category] = OrderedDict(sorted(self.signals.items(),
+       key = lambda x: getitem(x[1], 'MARKET_CAP')))
 
     def do_calculations(self, symbol, data, global_data):
         total_net_income_periods = list(map(int, data[symbol]['INCOME_STATEMENT']['netIncome']))
@@ -73,6 +85,7 @@ class CalculateSignal:
         self.calc_wacc(data, symbol, global_data, total_debt)
         self.calc_terminal_value(symbol)
         self.calc_dfc(symbol, period_number,data)
+        self.add_sorted_dict_by_category('MARKET_CAP')
 
     # Calculate the average Free Cash Flow to Equity / Net Income ratio for the time period
     def calc_fcfe_net_income_ratio(self, symbol, data, total_net_income_periods):
@@ -174,9 +187,11 @@ class CalculateSignal:
         print('market_cap', market_cap)
         diff = dcf-market_cap
         print(diff, 'diff')
-        self.signals[symbol]['DCF'] = dcf
-        self.signals[symbol]['DIFF'] = diff
-        self.signals[symbol]['MARKET_CAP'] = market_cap
+        percentage_diff_dcf_market_cap = (dcf/market_cap - 1)*100
+        self.signals[symbol]['DCF'] = round(dcf/1E9, 2)
+        self.signals[symbol]['DIFF'] = round(diff/1E9, 2)
+        self.signals[symbol]['MARKET_CAP'] = round(market_cap/1E9, 2)
+        self.signals[symbol]['PERCENTAGE_DIFF'] = round(percentage_diff_dcf_market_cap, 2)
 
 
 
@@ -185,7 +200,7 @@ signal_calculator = CalculateSignal()
 
 @app.route('/')
 async def main_page_finance_data():
-    symbols = ['IBM', 'NTNX']
+    symbols = ['IBM', 'AAPL', 'GOOG', 'SSYS', 'DDD', 'HPQ', 'CSCO', 'NTNX', 'CRM']
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
     tasks = []
     for function_type in function_types:
@@ -199,7 +214,7 @@ async def main_page_finance_data():
         signal_calculator.do_calculations(symbol, financial_data_aggregator.financial_data_aggregate,
                                           financial_data_aggregator.global_data)
     return render_template('data.html', data=financial_data_aggregator.financial_data_aggregate,
-                           signals=signal_calculator.get_signal())
+                           signals=signal_calculator.get_sorted_dict())
 
 
 if __name__ == '__main__':
