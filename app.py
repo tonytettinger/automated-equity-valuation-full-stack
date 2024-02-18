@@ -10,7 +10,7 @@ load_dotenv()
 
 current_year = datetime.now().year
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 
 # Percentage of market return rate estimate
 MARKET_RETURN_RATE = 0.1
@@ -200,7 +200,7 @@ signal_calculator = CalculateSignal()
 
 @app.route('/')
 async def main_page_finance_data():
-    symbols = ['IBM', 'AAPL', 'GOOG', 'SSYS', 'DDD', 'HPQ', 'CSCO', 'NTNX', 'CRM']
+    symbols = ['SSYS']
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
     tasks = []
     for function_type in function_types:
@@ -213,8 +213,17 @@ async def main_page_finance_data():
     for symbol in symbols:
         signal_calculator.do_calculations(symbol, financial_data_aggregator.financial_data_aggregate,
                                           financial_data_aggregator.global_data)
-    return render_template('data.html', data=financial_data_aggregator.financial_data_aggregate,
+    rendered_html = render_template('data.html', data=financial_data_aggregator.financial_data_aggregate,
                            signals=signal_calculator.get_sorted_dict())
+
+    # Write the rendered HTML to a file
+    try:
+        with open('static/data_output.html', 'w') as f:
+            f.write(rendered_html)
+    except:
+        print('Could not create file')
+
+    return rendered_html
 
 
 if __name__ == '__main__':
