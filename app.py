@@ -220,8 +220,10 @@ async def main_page_finance_data():
     try:
         with open('static/data_output.html', 'w') as f:
             f.write(rendered_html)
-    except:
-        print('Could not create file')
+    except IOError as e:
+        print('IOError creating file:', e)
+    except PermissionError as e:
+        print('PermissionError creating file:', e)
 
     return rendered_html
 
