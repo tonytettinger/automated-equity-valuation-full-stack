@@ -1,14 +1,13 @@
 from collections import defaultdict, OrderedDict
 from operator import getitem
 
+from sql.helpers import database_access
 
 # Percentage of market return rate estimate
-MARKET_RETURN_RATE = 0.1
+MARKET_RETURN_RATE = database_access.get_market_rate()
 
 # Perpetual growth estimate
-
-PERPETUAL_GROWTH_ESTIMATE = 0.025
-
+PERPETUAL_GROWTH_ESTIMATE = database_access.get_perpetual_growth()
 
 # Return percentage differences, if the value would be negative we just take the maximum value
 def calculate_percentage_difference(array):

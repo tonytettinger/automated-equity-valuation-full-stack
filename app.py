@@ -1,12 +1,9 @@
-from operator import getitem
-
 from flask import Flask, render_template
 from datetime import datetime
 import asyncio
-from financial_data_aggregator import *
-from collections import defaultdict, OrderedDict
+from functions.financial_data_aggregator import *
 
-from signal_calculator import CalculateSignal
+from functions.signal_calculator import CalculateSignal
 
 load_dotenv()
 
