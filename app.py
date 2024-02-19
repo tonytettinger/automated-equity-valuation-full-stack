@@ -34,12 +34,16 @@ async def main_page_finance_data():
 
     # Write the rendered HTML to a file
     try:
-        with open('static/data_output.html', 'w') as f:
+        time_string = datetime.today().strftime('%Y-%m-%d')
+        static_path_output_html = 'static/' + time_string + '.html'
+        with open('index.html', 'w') as f:
             f.write(rendered_html)
-    except IOError as e:
-        print('IOError creating file:', e)
+        with open(static_path_output_html, 'w') as f:
+            f.write(rendered_html)
     except PermissionError as e:
         print('PermissionError creating file:', e)
+    except IOError as e:
+        print('IOError creating file:', e)
 
     return rendered_html
 
