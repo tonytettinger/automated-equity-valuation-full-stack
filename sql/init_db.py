@@ -9,7 +9,7 @@ try:
 
     # Insert values into the variables table
     cur = connection.cursor()
-    cur.execute("INSERT INTO finvars (perpetual_growth_rate, market_return) VALUES (?, ?)", (0.025, 0.1))
+    cur.execute("INSERT INTO finvars (perpetual_growth_rate, market_return, safety_margin) VALUES (?, ?, ?)", (0.025, 0.1, 0.15))
 
     # Commit changes and close connection
     connection.commit()

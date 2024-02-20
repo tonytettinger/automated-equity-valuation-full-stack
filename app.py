@@ -1,9 +1,13 @@
-from flask import Flask, render_template
+import sqlite3
+
+from flask import Flask, render_template, request
 from datetime import datetime
 import asyncio
 from functions.financial_data_aggregator import *
+from functions.settings import get_variables_from_db
 
 from functions.signal_calculator import CalculateSignal
+from sql.helpers import database_path
 
 load_dotenv()
 
@@ -46,6 +50,26 @@ async def main_page_finance_data():
         print('IOError creating file:', e)
 
     return rendered_html
+
+@app.route('/settings', methods=['GET'])
+def settings():
+    columns, values = get_variables_from_db()
+    column_value_zip = zip(columns, values)
+    return render_template('settings.html', columns=columns, values=values, column_value_zip=column_value_zip)
+
+
+@app.route('/update_value', methods=['POST'])
+def update_value():
+    new_value = request.form['new_value']
+    # Update the SQL value
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    cursor.execute("UPDATE finvars SET market_return = ?", (new_value,))
+    conn.commit()
+    conn.close()
+
+    return 'Value updated successfully'
+
 
 
 if __name__ == '__main__':

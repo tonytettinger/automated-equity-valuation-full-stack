@@ -1,0 +1,30 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Value Form</title>
+</head>
+<body>
+<h1>Settings Page</h1>
+
+    <h2>Current Settings</h2>
+    <ul>
+        {% for column, value in column_value_zip %}
+        <li><strong>{{ column }}:</strong> {{ value }}</li>
+        {% endfor %}
+    </ul>
+    <h1>Update Value</h1>
+    <form action="/update_value" method="post">
+         <label for="column">Select Column:</label>
+        <select id="column" name="column">
+            {% for column in columns %}
+            <option value="{{ column }}">{{ column }}</option>
+            {% endfor %}
+        </select>
+    <br>
+        <label for="new_value">New Value:</label>
+        <input type="text" id="new_value" name="new_value" required>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
