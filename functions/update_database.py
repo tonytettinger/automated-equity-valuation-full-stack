@@ -1,10 +1,14 @@
 import sqlite3
 from flask import request
-def update_database():
-    # Connect to the SQLite database
+
+from sql.helpers import database_path
+
+
+def update_value():
+    new_value = request.form['new_value']
     conn = sqlite3.connect(database_path)
     cursor = conn.cursor()
-
-    # Fetch column names from a specific table (change 'your_table_name' to your table name)
-    cursor.execute("PRAGMA table_info(finvars)")
-    columns = [row[1] for row in cursor.fetchall()]
+    # Update the SQL value
+    cursor.execute("UPDATE finvars SET market_return = ?", (new_value,))
+    conn.commit()
+    conn.close()

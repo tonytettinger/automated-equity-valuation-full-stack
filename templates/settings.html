@@ -15,8 +15,8 @@
     </ul>
     <h1>Update Value</h1>
     <form action="/update_value" method="post">
-         <label for="column">Select Column:</label>
-        <select id="column" name="column">
+         <label for="variable_type">Select variable type to update:</label>
+        <select id="variable_type" name="variable_type">
             {% for column in columns %}
             <option value="{{ column }}">{{ column }}</option>
             {% endfor %}

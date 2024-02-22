@@ -2,6 +2,8 @@ import os
 import sqlite3
 from enum import Enum
 
+from flask import request
+
 current_directory = os.path.dirname(os.path.abspath(__file__))
 database_path = os.path.join(current_directory, 'database.db')
 
@@ -23,7 +25,14 @@ class DatabaseAccess:
         return self.data[0][FinancialVars.perpetual_growth_rate.value]
     def get_market_rate(self):
         return self.data[0][FinancialVars.market_rate.value]
+    def update_selected_value(self):
+        new_value = request.form['new_value']
+        # Update the SQL value
+        conn = sqlite3.connect(database_path)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE finvars SET market_return = ?", (new_value,))
+        conn.commit()
+        conn.close()
+
 
 database_access = DatabaseAccess()
-
-print(database_access.get_perpetual_growth())

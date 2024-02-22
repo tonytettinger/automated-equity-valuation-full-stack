@@ -12,9 +12,9 @@ def add_all_and_commit():
 
     print(git.status())
     print(current_directory)
-    print(git.add('.'))
-    #print(git.commit(m=f'{time_string} commit message'))
-    #print(git.push())
+    print(git.add('../templates/home.html'))
+    print(git.commit(m=f'{time_string} commit message'))
+    print(git.push())
     print(git.status())
 
 add_all_and_commit()
