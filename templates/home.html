@@ -10,5 +10,12 @@
 <body>
     <h1>Homepage</h1>
     <a href="settings">Settings page</a>
+
+     <h1>HTML Files</h1>
+        <ul>
+            {% for link in links %}
+                <li>{{ link | safe }}</li>
+            {% endfor %}
+        </ul>
 </body>
 </html>

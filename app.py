@@ -17,10 +17,21 @@ app = Flask(__name__, static_url_path='/static')
 
 signal_calculator = CalculateSignal()
 
+def get_html_files(folder):
+    html_files = [file for file in os.listdir(folder) if file.endswith('.html')]
+    return html_files
 
 @app.route('/')
 def index():
-    return render_template('home.html')
+    static = os.listdir('static')
+
+    # Generate links for each HTML file
+    links = []
+    for file in static:
+        if file.endswith('.html'):
+            links.append(f'<a href="/static/{file}">{file}</a>')
+
+    return render_template('home.html', links=links)
 
 
 @app.route('/check_stocks', methods=['GET'])
