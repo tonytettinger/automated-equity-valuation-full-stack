@@ -9,6 +9,8 @@ MARKET_RETURN_RATE = database_access.get_market_rate()
 # Perpetual growth estimate
 PERPETUAL_GROWTH_ESTIMATE = database_access.get_perpetual_growth()
 
+SAFETY_MARGIN = database_access.get_safety_margin()
+
 # Return percentage differences, if the value would be negative we just take the maximum value
 def calculate_percentage_difference(array):
     percentage_differences = []
@@ -174,9 +176,12 @@ class CalculateSignal:
         print('market_cap', market_cap)
         diff = dcf-market_cap
         print(diff, 'diff')
-        percentage_diff_dcf_market_cap = (dcf/market_cap - 1)*100
+        percentage_diff_dcf_market_cap = dcf/market_cap - 1
         self.signals[symbol]['DCF'] = round(dcf/1E9, 2)
         self.signals[symbol]['DIFF'] = round(diff/1E9, 2)
         self.signals[symbol]['MARKET_CAP'] = round(market_cap/1E9, 2)
-        self.signals[symbol]['PERCENTAGE_DIFF'] = round(percentage_diff_dcf_market_cap, 2)
+        self.signals[symbol]['PERCENTAGE_DIFF'] = round(percentage_diff_dcf_market_cap*100, 2)
+        is_over_safety_margin = percentage_diff_dcf_market_cap > SAFETY_MARGIN
+        if not is_over_safety_margin:
+            del self.signals[symbol]
 

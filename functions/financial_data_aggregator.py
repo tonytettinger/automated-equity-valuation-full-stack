@@ -3,6 +3,8 @@ import requests
 from dotenv import load_dotenv
 import os
 
+from functions.helpers import CustomException
+
 load_dotenv()
 
 
@@ -21,8 +23,12 @@ def add_years_data(sub_category_dict, current_year_data):
 def get_sub_category_data(*, data, year_range, keys):
     sub_category_dict = create_empty_dict(keys)
     for idx in year_range:
-        current_year_data = data['annualReports'][idx]
-        add_years_data(sub_category_dict, current_year_data)
+        try:
+            current_year_data = data['annualReports'][idx]
+            add_years_data(sub_category_dict, current_year_data)
+        except KeyError:
+            print("No data found for year {}".format(idx), ' for the data:', data)
+            continue
     return sub_category_dict
 
 
@@ -62,9 +68,15 @@ class FinancialDataTypeSwitch:
         self.set_current_company(symbol)
         if response.status_code == 200:
             data = response.json()
-            self.process_data(function_type, data)
+            print('data is', data)
+            if len(data) == 0:
+                error = jsonify({'error': f'Failed to fetch {function_type} data for {symbol} empty dict'})
+                raise CustomException(f"Stock {symbol} returned an empty dictionary response", symbol)
+            else:
+                self.process_data(function_type, data)
         else:
             error = jsonify({'error': f'Failed to fetch {function_type} data for {symbol}'})
+            print(error)
             self.add_error_to_error_state(error)
 
     async def get_overview_data(self, symbol):
