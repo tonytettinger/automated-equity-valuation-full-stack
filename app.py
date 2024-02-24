@@ -51,7 +51,10 @@ def index():
         if file.endswith('.html'):
             links.append(f'<a href="/static/{file}">{file}</a>')
 
-    return render_template('home.html', links=links)
+    homepage_rendered_html = render_template('home.html', links=links)
+    with open('static/index.html', 'w') as f:
+        f.write( homepage_rendered_html)
+    return  homepage_rendered_html
 
 
 async def process_symbols(function_type, symbols):
