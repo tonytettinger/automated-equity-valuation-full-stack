@@ -49,7 +49,7 @@ def index():
     links = []
     for file in static:
         if file.endswith('.html'):
-            links.append(f'<a href="/static/{file}">{file}</a>')
+            links.append(f'<a href="./{file}">{file}</a>')
 
     homepage_rendered_html = render_template('home.html', links=links)
     with open('static/index.html', 'w') as f:
