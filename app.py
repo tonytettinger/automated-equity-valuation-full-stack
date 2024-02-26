@@ -45,25 +45,27 @@ def handle_global_error(error):
 
 
 @app.route('/')
-def root():
-    return redirect(f'/{PROJECT_NAME}')
-
-
-@app.route(f'/{PROJECT_NAME}')
 def index():
     static = os.listdir('static')
-
+    link_prefix = '/static/'
     # Generate links for each HTML file
+    if os.getenv('FLASK_ENV') == 'development':
+        link_prefix = '/static/'
     links = []
+
+    #for local development
+    prefixed_links = []
     for file in static:
         if file.startswith('index'):
             continue
         if file.endswith('.html'):
-            links.append(f'<a href="/static/{file}">{file}</a>')
-    homepage_rendered_html = render_template('home.html', links=links, project_name=PROJECT_NAME)
+            links.append(f'<a href="{file}">{file}</a>')
+            prefixed_links.append(f'<a href="{link_prefix+file}">{file}</a>')
+    homepage_rendered_html = render_template('homepage.html', links=links)
+    development_homepage_rendered_html = render_template('homepage_dev_template.html', links=prefixed_links)
     with open('static/index.html', 'w') as f:
         f.write(homepage_rendered_html)
-    return homepage_rendered_html
+    return development_homepage_rendered_html
 
 
 async def process_symbols(function_type, symbols):
@@ -77,7 +79,7 @@ async def process_symbols(function_type, symbols):
     await asyncio.gather(*tasks)
 
 
-@app.route(f'/{PROJECT_NAME}/check_stocks', methods=['GET'])
+@app.route('/check_stocks', methods=['GET'])
 @limiter.limit("30 per minute")
 async def main_page_finance_data():
     symbols = ['AAPL', 'SSYS', 'HPQ']
@@ -136,7 +138,7 @@ async def main_page_finance_data():
     return 'successfully created the html file for financial data.'
 
 
-@app.route(f'/{PROJECT_NAME}/show_signals', methods=['GET'])
+@app.route('/signal-page-dev-template', methods=['GET'])
 async def show_signals():
     # Read signals data from the file
     try:
@@ -159,18 +161,18 @@ async def show_signals():
     except json.JSONDecodeError as e:
         print("Error decoding financial data aggregate JSON:", e)
 
-    return render_template('data.html', data=financial_data_aggregate,
-                           signals=signals)
+    return render_template('signal_page_dev_template.html', data=financial_data_aggregate,
+                           signals=signals, json_data=json.dumps(signals_json))
 
 
-@app.route(f'/{PROJECT_NAME}/settings', methods=['GET'])
+@app.route('/settings', methods=['GET'])
 def settings():
     columns, values = get_variables_from_db()
     column_value_zip = zip(columns, values)
     return render_template('settings.html', columns=columns, values=values, column_value_zip=column_value_zip)
 
 
-@app.route(f'/{PROJECT_NAME}/update_value', methods=['POST'])
+@app.route('/update_value', methods=['POST'])
 def update_value():
     database_access.update_selected_value()
     return redirect('/settings')
