@@ -6,31 +6,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     <title>Data Display</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 <body>
-    <h1>Financial Data Collection</h1>
-    <div>Calculations</div>
-    <ul>
-        {%for company in data%}
-        <li>
-            <h2>{{company}}</h2>
-            <div>{{ data[company] }}</div>
-        </li>
-        {%endfor%}
-    </ul>
 
-     <div id="jsonData" data-json={{ json_data }}></div>
 
-  <ul>
+        <h1>Financial summary</h1>
+
         {%for company in signals%}
-        <li>
-            <h3 class="text-blue-600">{{company}} (value in billions)</h3>
-            <div>DCF: {{ signals[company]['DCF']}}</div>
-            <div>Market Capitalization: {{ signals[company]['MARKET_CAP']}}</div>
-            <div>Difference between Market Capitalization and DCF: {{ signals[company]['DIFF']}}</div>
-            <div>Percentage difference between DCF and Market Capitalization: {{ signals[company]['PERCENTAGE_DIFF'] }}%</div>
-        </li>
+            <h2>DCF analysis for {{company}} (value in billions)</h2>
+             <ul>
+            <li>DCF: {{ signals[company]['DCF']}}</li>
+            <li>Market Capitalization: {{ signals[company]['MARKET_CAP']}}</li>
+            <li>Difference between Market Capitalization and DCF: {{ signals[company]['DIFF']}}</li>
+            <li>Percentage difference between DCF and Market Capitalization: {{ signals[company]['PERCENTAGE_DIFF'] }}%</li>
+            <li><a href="https://finance.yahoo.com/quote/{{company}}">Link on Yahoo Finance</a></li>
+            <li>Latest queried price: <b>{{ signals[company]['LATEST_PRICE'] }}</b></li>
+
+
+            </ul>
+
+            <h2>Additional data for {{ company }}:</h2>
+            <ul>
+              {%for overview_data, name in additional_overview_data %}
+            <li><span>{{ name }}: </span>{{ data[company][overview_data] }}</li>
+            {%endfor%}
+            </ul>
+
+<div class="object-cover h-96 w-full">
+  <canvas class="w-full" id="macdChart-{{ company }}"></canvas>
+</div>
+    <script>
+        var ctx{{ company }} = document.getElementById('macdChart-{{ company }}')
+        var macdData = JSON.parse('{{ signals[company]['MACD'] | tojson | safe }}');
+          const ctx = document.getElementById('macdChart-{{ company }}');
+          console.log(macdData)
+        // Step 1: Convert object keys into an array and sort in descending order
+const dates = Object.keys(macdData).sort((a, b) => new Date(b) - new Date(a));
+
+// Step 2: Slice the array to get the latest 3 dates
+const latestDates = dates.slice(0, 100);
+
+// Step 3: Iterate through the latest dates and extract key-value pairs
+        const latestData = latestDates.map(date => macdData[date])
+        const macd = latestData.map(data => data['MACD'])
+        const macdSignal = latestData.map(data => data['MACD_Signal'])
+        console.log('macdDatalength', macd.length)
+console.log('latestdata', latestData);
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [...latestDates],
+      datasets: [{
+        label: 'MACD',
+        data: [...macd],
+        borderWidth: 1,
+                    pointRadius: 0,
+
+      },{
+        label: 'Signal Line',
+        data: [...macdSignal],
+        borderWidth: 1,
+                    pointRadius: 0
+
+      },{
+        label: 'Base Line',
+        data: [...new Array(macd.length).fill(0)],
+        borderWidth: 1,
+          pointRadius: 0
+      }]
+    },
+      options: { plugins: {
+    title: {
+      display: true,
+      text: 'MACD chart for {{ company }}' // Title text
+    }
+  }}
+  });
+    </script>
         {%endfor%}
-    </ul>
 </body>
 </html>
