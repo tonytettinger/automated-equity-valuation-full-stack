@@ -1,5 +1,8 @@
+import os
 from collections import defaultdict, OrderedDict
 from operator import getitem
+
+import requests
 
 from sql.helpers import database_access
 
@@ -50,6 +53,7 @@ class CalculateSignal:
     def __init__(self):
         self.sortedSignals = {}
         self.signals = defaultdict(lambda: defaultdict(dict))
+        self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
 
     def get_signal(self):
         return self.signals
@@ -61,7 +65,7 @@ class CalculateSignal:
         self.sortedSignals[category] = OrderedDict(sorted(self.signals.items(),
        key = lambda x: getitem(x[1], 'MARKET_CAP')))
 
-    def do_calculations(self, symbol, data, global_data):
+    async def do_calculations(self, symbol, data, global_data):
         total_net_income_periods = list(map(int, data[symbol]['INCOME_STATEMENT']['netIncome']))
         total_revenue_periods = list(map(int, data[symbol]['INCOME_STATEMENT']['totalRevenue']))
         period_number = len(total_net_income_periods)
@@ -73,7 +77,7 @@ class CalculateSignal:
         self.calc_projected_free_cash_flow(symbol, total_revenue_periods, 4)
         self.calc_wacc(data, symbol, global_data, total_debt)
         self.calc_terminal_value(symbol)
-        self.calc_dfc(symbol, period_number,data)
+        await self.calc_dfc(symbol, period_number,data)
         self.add_sorted_dict_by_category('MARKET_CAP')
 
     # Calculate the average Free Cash Flow to Equity / Net Income ratio for the time period
@@ -162,7 +166,7 @@ class CalculateSignal:
         else:
             self.signals[symbol]['TERMINAL_VALUE'] = terminal_value
 
-    def calc_dfc(self, symbol, period_number, data):
+    async def calc_dfc(self, symbol, period_number, data):
         return_multiplier = self.signals[symbol]['WACC'] + 1
         discount_rates = generate_interest_rates(return_multiplier, period_number)
         fcfe_values_to_discount = self.signals[symbol]['PROJECTED_FREE_CASH_FLOWS'] + [
@@ -184,4 +188,21 @@ class CalculateSignal:
         is_over_safety_margin = percentage_diff_dcf_market_cap > SAFETY_MARGIN
         if not is_over_safety_margin:
             del self.signals[symbol]
+        else:
+            await self.get_MACD(symbol)
+            self.signals[symbol]['LATEST_PRICE'] = data[symbol]['LATEST_PRICE']
+
+    async def get_MACD(self, symbol):
+        api_url = f'https://www.alphavantage.co/query?function=MACD&symbol={symbol}&interval=daily&series_type=open&apikey={self.api_key}'
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            data = response.json()
+            print('data is', data)
+            if len(data) == 0:
+                self.signals[symbol]['MACD'] = {}
+            else:
+                self.signals[symbol]['MACD'] = data["Technical Analysis: MACD"]
+        else:
+            self.signals[symbol]['MACD'] = {}
+
 
