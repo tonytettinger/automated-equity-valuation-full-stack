@@ -52,20 +52,19 @@ def index():
     if os.getenv('FLASK_ENV') == 'development':
         link_prefix = '/static/'
     links = []
-
-    #for local development
     prefixed_links = []
     for file in static:
         if file.startswith('index'):
             continue
         if file.endswith('.html'):
-            links.append(f'<a href="{file}">{file}</a>')
-            prefixed_links.append(f'<a href="{link_prefix+file}">{file}</a>')
-    homepage_rendered_html = render_template('homepage.html', links=links)
-    development_homepage_rendered_html = render_template('homepage_dev_template.html', links=prefixed_links)
+            file_without_extension = file[:-5]
+            links.append((file, file_without_extension))
+            prefixed_links.append((link_prefix+file, file_without_extension))
+    production_html_homepage = render_template('homepage.html', links=prefixed_links)
+    development_html_homepage = render_template('homepage_dev_template.html', links=links)
     with open('static/index.html', 'w') as f:
-        f.write(homepage_rendered_html)
-    return development_homepage_rendered_html
+        f.write(production_html_homepage)
+    return development_html_homepage
 
 
 async def process_symbols(function_type, symbols):
@@ -96,7 +95,7 @@ async def main_page_finance_data():
     if len(symbols) == 0:
         raise Exception('No symbols to loop through')
     for symbol in symbols:
-        signal_calculator.do_calculations(symbol, financial_data_aggregator.financial_data_aggregate,
+        await signal_calculator.do_calculations(symbol, financial_data_aggregator.financial_data_aggregate,
                                           financial_data_aggregator.global_data)
 
     signals = signal_calculator.get_sorted_dict()
@@ -122,7 +121,7 @@ async def main_page_finance_data():
         print("Error saving signals to file:", e)
 
     rendered_html = render_template('data.html', data=financial_data_aggregator.financial_data_aggregate,
-                                    signals=signal_calculator.get_sorted_dict())
+                                    signals=signal_calculator.get_sorted_dict(), additional_overview_data=ADDITIONAL_OVERVIEW_DATA)
 
     # Write the rendered HTML to the static folder with a timestamp
     try:
@@ -162,7 +161,7 @@ async def show_signals():
         print("Error decoding financial data aggregate JSON:", e)
 
     return render_template('signal_page_dev_template.html', data=financial_data_aggregate,
-                           signals=signals, json_data=json.dumps(signals_json))
+                           signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA)
 
 
 @app.route('/settings', methods=['GET'])

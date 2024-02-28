@@ -7,6 +7,17 @@ from functions.helpers import CustomException
 
 load_dotenv()
 
+ADDITIONAL_OVERVIEW_DATA = [
+    ('Description', 'Company description'),
+    ('52WeekHigh', '52 week high'),
+    ('52WeekLow', '52 week low'),  # Converted to tuple format
+    ('AnalystTargetPrice', 'Analyst target price'),  # Converted to tuple format
+    ('PERatio', 'PE ratio'),  # Converted to tuple format
+    ('ForwardPE', 'Forward PE'),  # Converted to tuple format
+    ('ProfitMargin', 'Profit margin'),  # Converted to tuple format
+    ('PriceToSalesRatioTTM', 'Price to sales ratio (TTM)'),  # Converted to tuple format
+    ('PriceToBookRatio', 'Price to book ratio')  # Converted to tuple format
+]
 
 def create_empty_dict(keys_array):
     return {key: [] for key in keys_array}
@@ -86,6 +97,9 @@ class FinancialDataTypeSwitch:
             data = response.json()
             self.add_to_financial_data_aggregate('BETA', data['Beta'])
             self.add_to_financial_data_aggregate('MARKET_CAPITALIZATION', data['MarketCapitalization'])
+            for key, value in ADDITIONAL_OVERVIEW_DATA:
+                self.add_to_financial_data_aggregate(key, data[key])
+
         else:
             error = jsonify({'error': f'Failed to fetch overview data for {symbol}'})
             self.add_error_to_error_state(error)
