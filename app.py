@@ -60,8 +60,8 @@ def index():
             file_without_extension = file[:-5]
             links.append((file, file_without_extension))
             prefixed_links.append((link_prefix+file, file_without_extension))
-    production_html_homepage = render_template('homepage.html', links=links)
-    development_html_homepage = render_template('homepage_dev_template.html', links=links)
+    production_html_homepage = render_template('homepage.html', links=links, prod=True)
+    development_html_homepage = render_template('homepage.html', links=links, prod=False)
     with open('static/index.html', 'w') as f:
         f.write(production_html_homepage)
     return development_html_homepage
