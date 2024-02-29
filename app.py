@@ -3,7 +3,7 @@ import sqlite3
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, make_response
 from datetime import datetime
 import asyncio
 from functions.financial_data_aggregator import *
@@ -47,19 +47,13 @@ def handle_global_error(error):
 @app.route('/')
 def index():
     static = os.listdir('static')
-    link_prefix = '/static/'
-    # Generate links for each HTML file
-    if os.getenv('FLASK_ENV') == 'development':
-        link_prefix = '/static/'
     links = []
-    prefixed_links = []
     for file in static:
         if file.startswith('index'):
             continue
         if file.endswith('.html'):
             file_without_extension = file[:-5]
             links.append((file, file_without_extension))
-            prefixed_links.append((link_prefix+file, file_without_extension))
     production_html_homepage = render_template('homepage.html', links=links, prod=True)
     development_html_homepage = render_template('homepage.html', links=links, prod=False)
     with open('static/index.html', 'w') as f:
@@ -120,25 +114,13 @@ async def main_page_finance_data():
     except IOError as e:
         print("Error saving signals to file:", e)
 
-    rendered_html = render_template('signal_page.html', data=financial_data_aggregator.financial_data_aggregate,
-                                    signals=signal_calculator.get_sorted_dict(), additional_overview_data=ADDITIONAL_OVERVIEW_DATA)
-
-    # Write the rendered HTML to the static folder with a timestamp
-    try:
-        time_string = datetime.today().strftime('%Y-%m-%d')
-        static_path_output_html = 'static/' + time_string + '.html'
-        with open(static_path_output_html, 'w') as f:
-            f.write(rendered_html)
-    except PermissionError as e:
-        print('PermissionError creating file:', e)
-    except IOError as e:
-        print('IOError creating file:', e)
-
-    return 'successfully created the html file for financial data.'
+    response = make_response('Success! Redirecting...', 200)
+    # Redirect to another route
+    return redirect('/signals')
 
 
-@app.route('/signal-page-dev-template', methods=['GET'])
-async def show_signals():
+@app.route('/signals', methods=['GET'])
+async def signals():
     # Read signals data from the file
     try:
         with open('static/signals.json', 'r') as f:
@@ -160,8 +142,24 @@ async def show_signals():
     except json.JSONDecodeError as e:
         print("Error decoding financial data aggregate JSON:", e)
 
-    return render_template('signal_page.html', data=financial_data_aggregate,
-                           signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA)
+    production_html_signals = render_template('signal_page.html',data=financial_data_aggregate,
+                           signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA, prod=True)
+
+    # Write the rendered HTML to the static folder with a timestamp
+    try:
+        time_string = datetime.today().strftime('%Y-%m-%d')
+        static_path_output_html = 'static/' + time_string + '.html'
+        with open(static_path_output_html, 'w') as f:
+            f.write(production_html_signals)
+    except PermissionError as e:
+        print('PermissionError creating file:', e)
+    except IOError as e:
+        print('IOError creating file:', e)
+
+    development_html_signals = render_template('signal_page.html',data=financial_data_aggregate,
+                           signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA, prod=False)
+    #return dev version
+    return development_html_signals
 
 
 @app.route('/settings', methods=['GET'])
