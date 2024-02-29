@@ -120,7 +120,7 @@ async def main_page_finance_data():
     except IOError as e:
         print("Error saving signals to file:", e)
 
-    rendered_html = render_template('data.html', data=financial_data_aggregator.financial_data_aggregate,
+    rendered_html = render_template('signal_page.html', data=financial_data_aggregator.financial_data_aggregate,
                                     signals=signal_calculator.get_sorted_dict(), additional_overview_data=ADDITIONAL_OVERVIEW_DATA)
 
     # Write the rendered HTML to the static folder with a timestamp
@@ -160,7 +160,7 @@ async def show_signals():
     except json.JSONDecodeError as e:
         print("Error decoding financial data aggregate JSON:", e)
 
-    return render_template('signal_page_dev_template.html', data=financial_data_aggregate,
+    return render_template('signal_page.html', data=financial_data_aggregate,
                            signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA)
 
 
