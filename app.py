@@ -10,6 +10,7 @@ from functions.financial_data_aggregator import *
 from functions.settings import get_variables_from_db
 
 from functions.signal_calculator import CalculateSignal
+from scheduler.notifications import notify
 from sql.helpers import database_path, database_access
 
 load_dotenv()
@@ -77,7 +78,8 @@ async def process_symbols(function_type, symbols):
 async def main_page_finance_data():
     symbols = ['AAPL', 'SSYS', 'HPQ']
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
-    tasks = []
+    scheduler = request.args.get('scheduler')
+    print('scheduler value', scheduler)
     for function_type in function_types:
         try:
             await process_symbols(function_type, symbols)
@@ -116,7 +118,8 @@ async def main_page_finance_data():
 
     response = make_response('Success! Redirecting...', 200)
     # Redirect to another route
-    return redirect('/signals')
+    redirect_route = '/signals?scheduler=' + scheduler
+    return redirect(redirect_route)
 
 
 @app.route('/signals', methods=['GET'])
@@ -155,6 +158,12 @@ async def signals():
         print('PermissionError creating file:', e)
     except IOError as e:
         print('IOError creating file:', e)
+
+    scheduler = request.args.get('scheduler')
+    print('scheduler value in signals endpoint', scheduler)
+
+    if scheduler == 'true':
+        notify()
 
     development_html_signals = render_template('signal_page.html',data=financial_data_aggregate,
                            signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA, prod=False)
