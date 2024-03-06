@@ -19,10 +19,10 @@
     <div class="container mx-auto">
         <h1 class="text-3xl font-bold mb-8">Financial Summary</h1>
         {% for company in signals %}
-            <div id="company-data-and-graph-wrapper" class="flex flex-wrap">
-            <div id="company-data-wrapper" class="w-1/3">
+            <div id="company-data-and-graph-wrapper-{{ company }}" class="flex flex-wrap">
+            <div id="company-data-wrapper-{{ company }}" class="w-1/3">
 
-        <div id="dcf-data" class="flex flex-col bg-blue-100 border-solid border-2 border-black rounded p-4 mb-2">
+        <div id="dcf-data-{{ company }}" class="flex flex-col bg-blue-100 border-solid border-2 border-black rounded p-4 mb-2">
             <h2 class="text-2xl font-bold mb-4">DCF Analysis for {{ company }} (Value in Billions)</h2>
             <p class="mb-4 flex justify-between"><b>DCF:</b> <span class="ml-auto">{{ signals[company]['DCF'] }}</span></p>
             <p class="mb-4 flex justify-between"><b>Market Capitalization:</b> <span>{{ signals[company]['MARKET_CAP'] }}</span></p>
@@ -51,32 +51,31 @@
         </div>
             <script>
                 var ctx{{ company }} = document.getElementById('macdChart-{{ company }}')
-                var macdData = JSON.parse('{{ signals[company]['MACD'] | tojson | safe }}');
-                const ctx = document.getElementById('macdChart-{{ company }}');
+                var macdData{{ company }} = JSON.parse('{{ signals[company]['MACD'] | tojson | safe }}');
 
-                const dates = Object.keys(macdData).sort((a, b) => new Date(b) - new Date(a));
-                const latestDates = dates.slice(0, 100);
-                const latestData = latestDates.map(date => macdData[date])
-                const macd = latestData.map(data => data['MACD'])
-                const macdSignal = latestData.map(data => data['MACD_Signal'])
+                const dates{{ company }} = Object.keys(macdData{{ company }}).sort((a, b) => new Date(b) - new Date(a));
+                const latestDates{{ company }} = dates{{ company }}.slice(0, 100);
+                const latestData{{ company }} = latestDates{{ company }}.map(date => macdData{{ company }}[date])
+                const macd{{ company }} = latestData{{ company }}.map(data => data['MACD'])
+                const macdSignal{{ company }} = latestData{{ company }}.map(data => data['MACD_Signal'])
 
-                new Chart(ctx, {
+                new Chart(ctx{{ company }}, {
                     type: 'line',
                     data: {
-                        labels: [...latestDates],
+                        labels: [...latestDates{{ company }}],
                         datasets: [{
                             label: 'MACD',
-                            data: [...macd],
+                            data: [...macd{{ company }}],
                             borderWidth: 1,
                             pointRadius: 0,
                         }, {
                             label: 'Signal Line',
-                            data: [...macdSignal],
+                            data: [...macdSignal{{ company }}],
                             borderWidth: 1,
                             pointRadius: 0
                         }, {
                             label: 'Base Line',
-                            data: [...new Array(macd.length).fill(0)],
+                            data: [...new Array(macd{{ company }}.length).fill(0)],
                             borderWidth: 1,
                             pointRadius: 0
                         }]
