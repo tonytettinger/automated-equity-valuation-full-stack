@@ -62,37 +62,77 @@ def index():
     return development_html_homepage
 
 
-async def process_symbols(function_type, symbols):
+async def get_datatypes_for_symbols(function_type, stock_symbols):
     tasks = []
-    for symbol in symbols:
-        tasks.append(financial_data_aggregator.get_data(function_type, symbol))
-        tasks.append(financial_data_aggregator.get_overview_data(symbol))
-        tasks.append(financial_data_aggregator.get_price_data(symbol))
-        tasks.append(financial_data_aggregator.get_treasury_data())
+    for ticker in stock_symbols:
+        tasks.append(financial_data_aggregator.get_data(function_type, ticker))
 
     await asyncio.gather(*tasks)
+
+
+async def get_generic_symbol_data(symbols):
+    tasks = []
+    for symbol in symbols:
+        tasks.append(financial_data_aggregator.get_overview_data(symbol))
+        tasks.append(financial_data_aggregator.get_price_data(symbol))
+
+    await asyncio.gather(*tasks)
+
+async def get_market_data():
+    return await financial_data_aggregator.get_treasury_data()
+
+def remove_non_alphanumeric(strings):
+    return [''.join(char for char in string if char.isalnum()) for string in strings]
+async def get_biggest_movers_and_losers_symbols():
+    # Perform some asynchronous task
+    api_url = f'https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={os.getenv("ALPHA_VANTAGE_API_KEY")}'
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        data = response.json()
+        if len(data) == 0:
+            return []
+        else:
+            most_traded = [entry["ticker"] for entry in data["most_actively_traded"]]
+            top_losers = [entry["ticker"] for entry in data["top_losers"]]
+            print(most_traded)
+            combined_array_most_traded_and_top_losers = list(set(most_traded + top_losers))
+            cleaned_combined_array = remove_non_alphanumeric(combined_array_most_traded_and_top_losers)
+            print('cleaned_combined_array', cleaned_combined_array)
+            return cleaned_combined_array
+    else:
+        print('additional tickers not found')
+        return []
 
 
 @app.route('/check_stocks', methods=['GET'])
 @limiter.limit("30 per minute")
 async def main_page_finance_data():
-    symbols = ['AAPL', 'SSYS', 'HPQ']
+    base_symbols = ['HPQ', 'CSCO', 'DDD', 'SSYS', 'META', 'AMZN', 'MSFT', 'AAPL', 'GOOGL', 'IBM', 'TSLA']
+    additional_symbols = []
+    print('additional symbols are', additional_symbols)
+    symbols = list(set(base_symbols + additional_symbols))
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
     scheduler = request.args.get('scheduler')
+    if not scheduler:
+        scheduler = ''
     print('scheduler value', scheduler)
     for function_type in function_types:
-        try:
-            await process_symbols(function_type, symbols)
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            # Remove stock that had an error in processing its data while querying
-            symbols.remove(e.exception_variable)
+        await get_datatypes_for_symbols(function_type, symbols)
 
+    print('to remove', financial_data_aggregator.symbols_to_remove)
+    symbols = [symbol for symbol in symbols if symbol not in financial_data_aggregator.symbols_to_remove]
+
+
+    print('symbols now', symbols)
+    await get_generic_symbol_data(symbols)
+    print('got generic symbol data', symbols)
+    await get_market_data()
+    print('got market data', symbols)
     if len(symbols) == 0:
         raise Exception('No symbols to loop through')
     for symbol in symbols:
         await signal_calculator.do_calculations(symbol, financial_data_aggregator.financial_data_aggregate,
-                                          financial_data_aggregator.global_data)
+                                                financial_data_aggregator.global_data)
 
     signals = signal_calculator.get_sorted_dict()
     financial_data_aggregate = financial_data_aggregator.financial_data_aggregate
@@ -145,8 +185,9 @@ async def signals():
     except json.JSONDecodeError as e:
         print("Error decoding financial data aggregate JSON:", e)
 
-    production_html_signals = render_template('signal_page.html',data=financial_data_aggregate,
-                           signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA, prod=True)
+    production_html_signals = render_template('signal_page.html', data=financial_data_aggregate,
+                                              signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA,
+                                              prod=True)
 
     # Write the rendered HTML to the static folder with a timestamp
     try:
@@ -165,9 +206,10 @@ async def signals():
     if scheduler == 'true':
         notify()
 
-    development_html_signals = render_template('signal_page.html',data=financial_data_aggregate,
-                           signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA, prod=False)
-    #return dev version
+    development_html_signals = render_template('signal_page.html', data=financial_data_aggregate,
+                                               signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA,
+                                               prod=False)
+    # return dev version
     return development_html_signals
 
 

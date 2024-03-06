@@ -14,16 +14,25 @@ PERPETUAL_GROWTH_ESTIMATE = database_access.get_perpetual_growth()
 
 SAFETY_MARGIN = database_access.get_safety_margin()
 
+
+def safe_division(x, y, default=0):
+    try:
+        result = x / y
+    except ZeroDivisionError:
+        result = default
+    return result
+
+
 # Return percentage differences, if the value would be negative we just take the maximum value
 def calculate_percentage_difference(array):
     percentage_differences = []
     for i in range(len(array) - 1):
         current_element = array[i]
         next_element = array[i + 1]
-        percentage_difference = ((next_element - current_element) / current_element)
+        percentage_difference = (safe_division((next_element - current_element), current_element))
         percentage_differences.append(percentage_difference)
     print('percentage_differences:', percentage_differences)
-    average = sum(percentage_differences) / len(percentage_differences)
+    average = safe_division(sum(percentage_differences), len(percentage_differences))
     print('average:', average)
     if average <= 0:
         maxDif = max(percentage_differences)
@@ -45,7 +54,7 @@ def generate_interest_rates(return_multiplier, total_periods):
         next_rate = rates[-1] * return_multiplier
         rates.append(next_rate)
     rates.append(rates[-1])
-    print('rates',rates)
+    print('rates', rates)
     return rates
 
 
@@ -62,30 +71,36 @@ class CalculateSignal:
         return self.sortedSignals['MARKET_CAP']
 
     def add_sorted_dict_by_category(self, category):
-        self.sortedSignals[category] = OrderedDict(sorted(self.signals.items(),
-       key = lambda x: getitem(x[1], 'MARKET_CAP')))
+        self.sortedSignals[category] = OrderedDict(
+            sorted(self.signals.items(), key=lambda x: getitem(x[1], 'MARKET_CAP')))
 
     async def do_calculations(self, symbol, data, global_data):
         total_net_income_periods = list(map(int, data[symbol]['INCOME_STATEMENT']['netIncome']))
         total_revenue_periods = list(map(int, data[symbol]['INCOME_STATEMENT']['totalRevenue']))
         period_number = len(total_net_income_periods)
-        total_debt = int(data[symbol]['BALANCE_SHEET']['shortTermDebt'][0]) + int(data[symbol]['BALANCE_SHEET']['longTermDebt'][0])
+        total_debt = int(data[symbol]['BALANCE_SHEET']['shortTermDebt'][0]) + int(
+            data[symbol]['BALANCE_SHEET']['longTermDebt'][0])
 
-        self.calc_fcfe_net_income_ratio(symbol, data, total_net_income_periods)
-        self.calc_net_income_margin(symbol, total_net_income_periods, total_revenue_periods)
-        self.calc_earnings_growth(symbol, total_revenue_periods)
-        self.calc_projected_free_cash_flow(symbol, total_revenue_periods, 4)
-        self.calc_wacc(data, symbol, global_data, total_debt)
-        self.calc_terminal_value(symbol)
-        await self.calc_dfc(symbol, period_number,data)
-        self.add_sorted_dict_by_category('MARKET_CAP')
+        try:
+            self.calc_fcfe_net_income_ratio(symbol, data, total_net_income_periods)
+            self.calc_net_income_margin(symbol, total_net_income_periods, total_revenue_periods)
+            self.calc_earnings_growth(symbol, total_revenue_periods)
+            self.calc_projected_free_cash_flow(symbol, total_revenue_periods, 4)
+            self.calc_wacc(data, symbol, global_data, total_debt)
+            self.calc_terminal_value(symbol)
+            await self.calc_dfc(symbol, period_number, data)
+            self.add_sorted_dict_by_category('MARKET_CAP')
+        except Exception as e:
+            print('Exception occured during signal calculations: ' + str(e), 'for symbol:', symbol)
+            return
 
     # Calculate the average Free Cash Flow to Equity / Net Income ratio for the time period
     def calc_fcfe_net_income_ratio(self, symbol, data, total_net_income_periods):
+        print("Calculating FCFE net income")
         total_cash_flow_periods = list(map(int, data[symbol]['CASH_FLOW']['operatingCashflow']))
         capex_periods = list(map(int, data[symbol]['CASH_FLOW']['capitalExpenditures']))
 
-        fcfe_net_income_ratio = [(total_cash_flow - capex) / total_net_income for
+        fcfe_net_income_ratio = [safe_division((total_cash_flow - capex), total_net_income) for
                                  total_cash_flow, capex, total_net_income in
                                  zip(total_cash_flow_periods, capex_periods, total_net_income_periods)]
 
@@ -94,7 +109,7 @@ class CalculateSignal:
     # Calculate the net income margin and take the minimum for the most conservative estimate
     def calc_net_income_margin(self, symbol, total_net_income_periods, total_revenue_periods):
 
-        net_income_margin = [total_net_income_period / total_revenue_period for
+        net_income_margin = [safe_division(total_net_income_period, total_revenue_period) for
                              total_net_income_period, total_revenue_period in
                              zip(total_net_income_periods, total_revenue_periods)]
         print('net_income_margin:', net_income_margin)
@@ -124,9 +139,9 @@ class CalculateSignal:
         else:
             return abs(income_tax_expense_latest / income_before_tax_latest)
 
-    def calc_debt_cost_wacc(self, data, symbol,total_debt):
+    def calc_debt_cost_wacc(self, data, symbol, total_debt):
         interest_expense = data[symbol]['INCOME_STATEMENT']['interestExpense'][0]
-        return float(interest_expense) / float(total_debt)
+        return safe_division(float(interest_expense), float(total_debt))
 
     def calc_equity_cost(self, data, symbol, global_data):
         treasury_yield = float(global_data['TREASURY_YIELD']) * 0.01
@@ -134,12 +149,12 @@ class CalculateSignal:
         beta = float(data[symbol]['BETA'])
         print('beta', beta)
 
-
         capm = treasury_yield + beta * (MARKET_RETURN_RATE - treasury_yield)
         print('capm', capm)
         return capm
 
     def calc_debt_and_equity_weights(self, data, symbol, total_debt):
+        print('data', data[symbol])
         market_cap = int(data[symbol]['MARKET_CAPITALIZATION'])
         total = total_debt + market_cap
         return (total_debt / total, market_cap / total)
@@ -157,10 +172,8 @@ class CalculateSignal:
 
     def calc_terminal_value(self, symbol):
         base_value_last_year_estimate = self.signals[symbol]['PROJECTED_FREE_CASH_FLOWS'][-1]
-        print(self.signals[symbol]['PROJECTED_FREE_CASH_FLOWS'])
-        print(self.signals[symbol]['WACC'])
         terminal_value = base_value_last_year_estimate * (1 + PERPETUAL_GROWTH_ESTIMATE) / (
-                    self.signals[symbol]['WACC'] - PERPETUAL_GROWTH_ESTIMATE)
+                self.signals[symbol]['WACC'] - PERPETUAL_GROWTH_ESTIMATE)
         if terminal_value < 0:
             self.signals[symbol]['TERMINAL_VALUE'] = 0
         else:
@@ -172,19 +185,19 @@ class CalculateSignal:
         fcfe_values_to_discount = self.signals[symbol]['PROJECTED_FREE_CASH_FLOWS'] + [
             self.signals[symbol]['TERMINAL_VALUE']]
         print('fcfe_values_to_discount', fcfe_values_to_discount)
-        discounted_npv_for_cash_flows = [fcfe/dr for dr, fcfe in zip(discount_rates, fcfe_values_to_discount)]
+        discounted_npv_for_cash_flows = [fcfe / dr for dr, fcfe in zip(discount_rates, fcfe_values_to_discount)]
         print('discounted_npv_for_cash_flows', discounted_npv_for_cash_flows)
         dcf = sum(discounted_npv_for_cash_flows)
-        print('dcf', dcf)
+        print('dcf', dcf, symbol)
         market_cap = int(data[symbol]['MARKET_CAPITALIZATION'])
         print('market_cap', market_cap)
-        diff = dcf-market_cap
-        print(diff, 'diff')
-        percentage_diff_dcf_market_cap = dcf/market_cap - 1
-        self.signals[symbol]['DCF'] = round(dcf/1E9, 2)
-        self.signals[symbol]['DIFF'] = round(diff/1E9, 2)
-        self.signals[symbol]['MARKET_CAP'] = round(market_cap/1E9, 2)
-        self.signals[symbol]['PERCENTAGE_DIFF'] = round(percentage_diff_dcf_market_cap*100, 2)
+        diff = dcf - market_cap
+        print(diff, 'difference is')
+        percentage_diff_dcf_market_cap = dcf / market_cap - 1
+        self.signals[symbol]['DCF'] = round(dcf / 1E9, 2)
+        self.signals[symbol]['DIFF'] = round(diff / 1E9, 2)
+        self.signals[symbol]['MARKET_CAP'] = round(market_cap / 1E9, 2)
+        self.signals[symbol]['PERCENTAGE_DIFF'] = round(percentage_diff_dcf_market_cap * 100, 2)
         is_over_safety_margin = percentage_diff_dcf_market_cap > SAFETY_MARGIN
         if not is_over_safety_margin:
             del self.signals[symbol]
@@ -197,7 +210,7 @@ class CalculateSignal:
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
-            print('data is', data)
+            print('macd data is', data, symbol)
             if len(data) == 0:
                 self.signals[symbol]['MACD'] = {}
             else:
@@ -205,4 +218,15 @@ class CalculateSignal:
         else:
             self.signals[symbol]['MACD'] = {}
 
-
+    async def get_news(self, symbol):
+        api_url = f'https://www.alphavantage.co/query?function=MACD&symbol={symbol}&interval=daily&series_type=open&apikey={self.api_key}'
+        response = requests.get(api_url)
+        if response.status_code == 200:
+            data = response.json()
+            print('macd data is', data, symbol)
+            if len(data) == 0:
+                self.signals[symbol]['MACD'] = {}
+            else:
+                self.signals[symbol]['MACD'] = data["Technical Analysis: MACD"]
+        else:
+            self.signals[symbol]['MACD'] = {}

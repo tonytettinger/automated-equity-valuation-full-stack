@@ -31,41 +31,48 @@ def add_years_data(sub_category_dict, current_year_data):
             sub_category_dict[key].append(int(current_year_data[key]))
 
 
-def get_sub_category_data(*, data, year_range, keys):
-    sub_category_dict = create_empty_dict(keys)
-    for idx in year_range:
-        try:
-            current_year_data = data['annualReports'][idx]
-            add_years_data(sub_category_dict, current_year_data)
-        except KeyError:
-            print("No data found for year {}".format(idx), ' for the data:', data)
-            continue
-    return sub_category_dict
+
 
 
 class FinancialDataTypeSwitch:
     def __init__(self):
         self.financial_data_aggregate = {}
+        self.symbols_to_remove = []
         self.global_data = {}
         # For 4 years data
         self.year_range = range(4)
-        self.errorState = []
         self.current_company = None
         self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
 
-    def add_error_to_error_state(self, error):
-        self.errorState.append(error)
+    def get_sub_category_data(self, *, data, year_range, keys):
+        sub_category_dict = create_empty_dict(keys)
+        for idx in year_range:
+            try:
+                current_year_data = data['annualReports'][idx]
+                add_years_data(sub_category_dict, current_year_data)
+            except:
+                print("removing symbol because of error in getting sub-category",)
+                self.add_symbols_to_remove(self.current_company)
+                continue
+        return sub_category_dict
 
-    def get_error_state(self, error):
-        return self.errorState
+    def add_symbols_to_remove(self, current_company):
+        self.symbols_to_remove.append(current_company)
 
     def set_current_company(self, company):
         self.current_company = company
 
     def add_to_financial_data_aggregate(self, key, value):
-        if self.current_company not in self.financial_data_aggregate:
-            self.financial_data_aggregate[self.current_company] = {}
-        self.financial_data_aggregate[self.current_company][key] = value
+        try:
+            if self.current_company not in self.financial_data_aggregate:
+                self.financial_data_aggregate[self.current_company] = {}
+            if value != 'None' or value != '':
+                self.financial_data_aggregate[self.current_company][key] = value
+            else:
+                print('company', self.current_company, 'removed from queried companies in add_to_financial_data_aggregate')
+                self.add_symbols_to_remove(self.current_company)
+        except:
+            print("error in adding data to financial", key, value)
 
     def get_financial_data_aggregate(self):
         return self.financial_data_aggregate
@@ -79,47 +86,53 @@ class FinancialDataTypeSwitch:
         self.set_current_company(symbol)
         if response.status_code == 200:
             data = response.json()
-            print('data is', data)
             if len(data) == 0:
-                error = jsonify({'error': f'Failed to fetch {function_type} data for {symbol} empty dict'})
-                raise CustomException(f"Stock {symbol} returned an empty dictionary response", symbol)
+                print('data in financial aggregator is empty for', symbol)
+                self.add_symbols_to_remove(symbol)
+                print(f"Stock {symbol} returned an empty dictionary response", symbol)
             else:
+                print('checking stock', symbol)
+                print('with function_type', function_type)
                 self.process_data(function_type, data)
         else:
             error = jsonify({'error': f'Failed to fetch {function_type} data for {symbol}'})
             print(error)
-            self.add_error_to_error_state(error)
+            print('removing stock in get_data', symbol)
+            self.add_symbols_to_remove(symbol)
 
     async def get_overview_data(self, symbol):
         api_url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={self.api_key}'
         response = requests.get(api_url)
+        self.current_company = symbol
+        print('getting overview data')
         if response.status_code == 200:
             data = response.json()
             self.add_to_financial_data_aggregate('BETA', data['Beta'])
+            print('market CAPITALIZATION is ', data['MarketCapitalization'])
+            print('current aggregate for ', symbol, ' is ', self.financial_data_aggregate)
             self.add_to_financial_data_aggregate('MARKET_CAPITALIZATION', data['MarketCapitalization'])
             for key, value in ADDITIONAL_OVERVIEW_DATA:
                 self.add_to_financial_data_aggregate(key, data[key])
 
         else:
-            error = jsonify({'error': f'Failed to fetch overview data for {symbol}'})
-            self.add_error_to_error_state(error)
+            self.add_symbols_to_remove(symbol)
 
     async def get_price_data(self, symbol):
         try:
             api_url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&apikey={self.api_key}'
             response = requests.get(api_url)
+            self.current_company = symbol
             if response.status_code == 200:
                 data = response.json()
                 latest_daily_price_date, latest_daily_price = next(iter(data["Time Series (Daily)"].items()))
                 self.add_to_financial_data_aggregate('LATEST_PRICE', latest_daily_price["4. close"])
                 self.add_to_financial_data_aggregate('LATEST_PRICE_DATE', latest_daily_price_date)
             else:
-                error = jsonify({'error': f'Failed to fetch overview data for {symbol}'})
-                self.add_error_to_error_state(error)
+                print('removing symbol due to failed to get price data')
+                self.add_symbols_to_remove(symbol)
         except:
-            error = jsonify({'error': f'Failed to fetch overview data exception {symbol}'})
-            self.add_error_to_error_state(error)
-            pass
+            print('removing symbol due to failed to get price data')
+            self.add_symbols_to_remove(symbol)
 
     async def get_treasury_data(self):
         api_url = f'https://www.alphavantage.co/query?function=TREASURY_YIELD&apikey={self.api_key}'
@@ -129,31 +142,31 @@ class FinancialDataTypeSwitch:
             self.global_data['TREASURY_YIELD'] = data['data'][0]['value']
         else:
             error = jsonify({'error': f'Failed to fetch treasury data'})
-            self.add_error_to_error_state(error)
+            raise Exception(error)
 
     def process_data(self, function_type, data):
         default = "Incorrect data"
-
-        return getattr(self, str(function_type).lower(), lambda: default)(data)
+        try:
+            print('processing data')
+            return getattr(self, str(function_type).lower(), lambda: default)(data)
+        except:
+            raise Exception(f"{function_type} processing had an error (process_data)")
 
     def cash_flow(self, data):
         keys = ['operatingCashflow', 'capitalExpenditures']
-        get_sub_category_data(data=data, year_range=self.year_range, keys=keys)
 
         self.add_to_financial_data_aggregate('CASH_FLOW',
-                                             get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
+                                             self.get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
 
     def income_statement(self, data):
         keys = ['totalRevenue', 'netIncome', 'incomeBeforeTax', 'interestAndDebtExpense', 'incomeTaxExpense', 'interestExpense']
-        get_sub_category_data(data=data, year_range=self.year_range, keys=keys)
         self.add_to_financial_data_aggregate('INCOME_STATEMENT',
-                                             get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
+                                             self.get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
 
     def balance_sheet(self, data):
         keys = ['commonStockSharesOutstanding','shortTermDebt', 'longTermDebt']
-        get_sub_category_data(data=data, year_range=self.year_range, keys=keys)
         self.add_to_financial_data_aggregate('BALANCE_SHEET',
-                                             get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
+                                             self.get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
 
 
 financial_data_aggregator = FinancialDataTypeSwitch()
