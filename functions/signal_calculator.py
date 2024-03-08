@@ -204,6 +204,7 @@ class CalculateSignal:
         else:
             await self.get_MACD(symbol)
             self.signals[symbol]['LATEST_PRICE'] = data[symbol]['LATEST_PRICE']
+            await self.get_news(symbol)
 
     async def get_MACD(self, symbol):
         api_url = f'https://www.alphavantage.co/query?function=MACD&symbol={symbol}&interval=daily&series_type=open&apikey={self.api_key}'
@@ -219,14 +220,35 @@ class CalculateSignal:
             self.signals[symbol]['MACD'] = {}
 
     async def get_news(self, symbol):
-        api_url = f'https://www.alphavantage.co/query?function=MACD&symbol={symbol}&interval=daily&series_type=open&apikey={self.api_key}'
+        api_url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={symbol}&apikey={self.api_key}'
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
-            print('macd data is', data, symbol)
+            print('news data for', symbol, 'is ', data)
             if len(data) == 0:
-                self.signals[symbol]['MACD'] = {}
+                self.signals[symbol]['NEWS'] = {}
+                self.signals[symbol]['SENTIMENT_AVG'] = {}
             else:
-                self.signals[symbol]['MACD'] = data["Technical Analysis: MACD"]
+                news_feed = data["feed"]
+                news_feed_to_add = []
+                symbol_sentiment = []
+                for news in news_feed:
+                    try:
+                        for ticker_sentiment in news["ticker_sentiment"]:
+                            current_symbol = ticker_sentiment["ticker"]
+                            if current_symbol == symbol:
+                                symbol_sentiment.append(float(ticker_sentiment["ticker_sentiment_score"]))
+                                print('ticker sentiment', ticker_sentiment)
+                                if float(ticker_sentiment["relevance_score"]) >= 0.25:
+                                    news_feed_to_add.append(news)
+                    except:
+                        print('error in getting news sentiment')
+                        continue
+                sentiment_average = round(sum(symbol_sentiment)/len(symbol_sentiment), 2)
+
+                self.signals[symbol]['NEWS'] = news_feed_to_add
+                self.signals[symbol]['SENTIMENT_AVG'] = sentiment_average
+                print('news feed to add', news_feed_to_add)
         else:
-            self.signals[symbol]['MACD'] = {}
+            self.signals[symbol]['NEWS'] = {}
+            self.signals[symbol]['SENTIMENT_AVG'] = {}

@@ -11,88 +11,93 @@
         <link rel="stylesheet" type="text/css" href="./css/style.css">
     {% else %}
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
-     {% endif %}
-
+    {% endif %}
 </head>
 
 <body class="bg-gray-100 p-8">
     <div class="container mx-auto">
         <h1 class="text-3xl font-bold mb-8">Financial Summary</h1>
         {% for company in signals %}
-            <div id="company-data-and-graph-wrapper-{{ company }}" class="flex flex-wrap">
-            <div id="company-data-wrapper-{{ company }}" class="w-1/3">
-
-        <div id="dcf-data-{{ company }}" class="flex flex-col bg-blue-100 border-solid border-2 border-black rounded p-4 mb-2">
-            <h2 class="text-2xl font-bold mb-4">DCF Analysis for {{ company }} (Value in Billions)</h2>
-            <p class="mb-4 flex justify-between"><b>DCF:</b> <span class="ml-auto">{{ signals[company]['DCF'] }}</span></p>
-            <p class="mb-4 flex justify-between"><b>Market Capitalization:</b> <span>{{ signals[company]['MARKET_CAP'] }}</span></p>
-            <p class="mb-4 flex justify-between"><b>Difference between Market Capitalization and DCF:</b> <span>{{ signals[company]['DIFF'] }}</span></p>
-            <p class="mb-4 flex justify-between"><b>Percentage difference between DCF and Market Capitalization:</b> <span>{{ signals[company]['PERCENTAGE_DIFF'] }}%</span></p>
-            <p class="mb-4 flex justify-between"><b>Latest queried price:</b> <span>{{ signals[company]['LATEST_PRICE'] }}</span></p>
-            <p class="mb-4 flex justify-between"><a href="https://finance.yahoo.com/quote/{{ company }}" class="text-blue-500">Link on Yahoo Finance</a></p>
-</div>
-
-
-        <div class="flex flex-col bg-blue-100 border-solid border-2 border-black rounded p-4">
-
-            <h2 class="text-2xl font-bold mb-4">Additional Data for {{ company }}</h2>
-            <div class="mb-4">
-                {% for overview_data, name in additional_overview_data %}
-                <p class="mb-4 flex justify-between max-w-prose"><b>{{ name }}: </b> <span class="ml-2">{{ data[company][overview_data] }}</span></p>
-                {% endfor %}
+        <div class="flex flex-wrap justify-between mb-12">
+            <div class="w-full md:w-1/2 lg:w-1/3 px-4">
+                <div id="dcf-data-{{ company }}" class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
+                    <h2 class="text-2xl font-bold mb-4">DCF Analysis for {{ company }} (Value in Billions)</h2>
+                    <p class="mb-2"><b>DCF:</b> <span>{{ signals[company]['DCF'] }}</span></p>
+                    <p class="mb-2"><b>Market Capitalization:</b> <span>{{ signals[company]['MARKET_CAP'] }}</span></p>
+                    <p class="mb-2"><b>Difference between Market Capitalization and DCF:</b> <span>{{ signals[company]['DIFF'] }}</span></p>
+                    <p class="mb-2"><b>Percentage difference between DCF and Market Capitalization:</b> <span>{{ signals[company]['PERCENTAGE_DIFF'] }}%</span></p>
+                    <p><b>Latest queried price:</b> <span>{{ signals[company]['LATEST_PRICE'] }}</span></p>
+                    <p><a href="https://finance.yahoo.com/quote/{{ company }}" class="text-blue-500">Link on Yahoo Finance</a></p>
+                </div>
+                <div class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
+                    <h2 class="text-2xl font-bold mb-4">Additional Data for {{ company }}</h2>
+                    <div>
+                        {% for overview_data, name in additional_overview_data %}
+                            <p class="mb-2"><b>{{ name }}:</b> <span>{{ data[company][overview_data] }}</span></p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-        </div>
+            <div class="w-full md:w-1/2 lg:w-2/3 px-4">
+                <div class="bg-white shadow-md rounded-lg px-4 py-6 mb-4">
+                    <h3 class="text-lg font-semibold mb-4">News <span class="text-gray-600">(overall news sentiment score: {{ signals[company]['SENTIMENT_AVG'] }})</span></h3>
+                    <div class="space-y-4 border-solid border-2 border-black">
+                        <select onchange="window.open(this.value,'_blank')" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-200">
+                            <option disabled selected>Select a news</option>
+                            {% for news in signals[company]['NEWS'] %}
+                                <option value="{{ news["url"] }}">{{ news['title'] }} - Source {{ news['source'] }} - Sentiment {{ news["ticker_sentiment"][0]["ticker_sentiment_score"] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="bg-white shadow-md rounded-lg px-4 py-6">
+                    <canvas id="macdChart-{{ company }}"></canvas>
+                    <script>
+                        var ctx{{ company }} = document.getElementById('macdChart-{{ company }}');
+                        var macdData{{ company }} = JSON.parse('{{ signals[company]['MACD'] | tojson | safe }}');
 
-            </div>
+                        const dates{{ company }} = Object.keys(macdData{{ company }}).sort((a, b) => new Date(b) - new Date(a));
+                        const latestDates{{ company }} = dates{{ company }}.slice(0, 100);
+                        const latestData{{ company }} = latestDates{{ company }}.map(date => macdData{{ company }}[date]);
+                        const macd{{ company }} = latestData{{ company }}.map(data => data['MACD']);
+                        const macdSignal{{ company }} = latestData{{ company }}.map(data => data['MACD_Signal']);
 
-             <div class="w-2/3 flex justify-center items-center">
-                <canvas class="object-cover" id="macdChart-{{ company }}"></canvas>
-            </div>
-        </div>
-            <script>
-                var ctx{{ company }} = document.getElementById('macdChart-{{ company }}')
-                var macdData{{ company }} = JSON.parse('{{ signals[company]['MACD'] | tojson | safe }}');
-
-                const dates{{ company }} = Object.keys(macdData{{ company }}).sort((a, b) => new Date(b) - new Date(a));
-                const latestDates{{ company }} = dates{{ company }}.slice(0, 100);
-                const latestData{{ company }} = latestDates{{ company }}.map(date => macdData{{ company }}[date])
-                const macd{{ company }} = latestData{{ company }}.map(data => data['MACD'])
-                const macdSignal{{ company }} = latestData{{ company }}.map(data => data['MACD_Signal'])
-
-                new Chart(ctx{{ company }}, {
-                    type: 'line',
-                    data: {
-                        labels: [...latestDates{{ company }}],
-                        datasets: [{
-                            label: 'MACD',
-                            data: [...macd{{ company }}],
-                            borderWidth: 1,
-                            pointRadius: 0,
-                        }, {
-                            label: 'Signal Line',
-                            data: [...macdSignal{{ company }}],
-                            borderWidth: 1,
-                            pointRadius: 0
-                        }, {
-                            label: 'Base Line',
-                            data: [...new Array(macd{{ company }}.length).fill(0)],
-                            borderWidth: 1,
-                            pointRadius: 0
-                        }]
-                    },
-                    options: {
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'MACD Chart for {{ company }}' // Title text
+                        new Chart(ctx{{ company }}, {
+                            type: 'line',
+                            data: {
+                                labels: [...latestDates{{ company }}],
+                                datasets: [{
+                                    label: 'MACD',
+                                    data: [...macd{{ company }}],
+                                    borderWidth: 1,
+                                    pointRadius: 0,
+                                }, {
+                                    label: 'Signal Line',
+                                    data: [...macdSignal{{ company }}],
+                                    borderWidth: 1,
+                                    pointRadius: 0
+                                }, {
+                                    label: 'Base Line',
+                                    data: [...new Array(macd{{ company }}.length).fill(0)],
+                                    borderWidth: 1,
+                                    pointRadius: 0
+                                }]
+                            },
+                            options: {
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: 'MACD Chart for {{ company }}' // Title text
+                                    }
+                                }
                             }
-                        }
-                    }
-                });
-            </script>
+                        });
+                    </script>
+                </div>
+            </div>
+        </div>
         {% endfor %}
     </div>
-
 </body>
 
 </html>

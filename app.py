@@ -109,8 +109,8 @@ async def get_biggest_movers_and_losers_symbols():
 @app.route('/check_stocks', methods=['GET'])
 @limiter.limit("30 per minute")
 async def main_page_finance_data():
-    base_symbols = ['HPQ', 'CSCO', 'DDD', 'SSYS', 'META', 'AMZN', 'MSFT', 'AAPL', 'GOOGL', 'IBM', 'TSLA']
-    additional_symbols = await get_tech_stock_market_movers()
+    base_symbols = ['HPQ']
+    additional_symbols = []
     print('additional symbols are', additional_symbols)
     symbols = list(set(base_symbols + additional_symbols))
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
