@@ -9,6 +9,7 @@ import asyncio
 
 from functions.additional_tickers import get_tech_stock_market_movers
 from functions.financial_data_aggregator import *
+from functions.get_links_from_static import get_links_from_static
 from functions.settings import get_variables_from_db
 
 from functions.signal_calculator import CalculateSignal
@@ -49,18 +50,9 @@ def handle_global_error(error):
 
 @app.route('/')
 def index():
-    static = os.listdir('static')
-    links = []
-    for file in static:
-        if file.startswith('index'):
-            continue
-        if file.endswith('.html'):
-            file_without_extension = file[:-5]
-            links.append((file, file_without_extension))
-    production_html_homepage = render_template('homepage.html', links=links, prod=True)
+    links = get_links_from_static()
     development_html_homepage = render_template('homepage.html', links=links, prod=False)
-    with open('static/index.html', 'w') as f:
-        f.write(production_html_homepage)
+
     return development_html_homepage
 
 
@@ -80,11 +72,15 @@ async def get_generic_symbol_data(symbols):
 
     await asyncio.gather(*tasks)
 
+
 async def get_market_data():
     return await financial_data_aggregator.get_treasury_data()
 
+
 def remove_non_alphanumeric(strings):
     return [''.join(char for char in string if char.isalnum()) for string in strings]
+
+
 async def get_biggest_movers_and_losers_symbols():
     # Perform some asynchronous task
     api_url = f'https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={os.getenv("ALPHA_VANTAGE_API_KEY")}'
@@ -96,7 +92,6 @@ async def get_biggest_movers_and_losers_symbols():
         else:
             most_traded = [entry["ticker"] for entry in data["most_actively_traded"]]
             top_losers = [entry["ticker"] for entry in data["top_losers"]]
-            print(most_traded)
             combined_array_most_traded_and_top_losers = list(set(most_traded + top_losers))
             cleaned_combined_array = remove_non_alphanumeric(combined_array_most_traded_and_top_losers)
             print('cleaned_combined_array', cleaned_combined_array)
@@ -111,25 +106,21 @@ async def get_biggest_movers_and_losers_symbols():
 async def main_page_finance_data():
     base_symbols = ['HPQ', 'CSCO', 'MSFT', 'AAPL', 'GOOGL', 'IBM', 'TSLA', 'BYD', 'LICY', 'AMYZF', 'UMICY']
     additional_symbols = await get_tech_stock_market_movers()
-    print('additional symbols are', additional_symbols)
     symbols = list(set(base_symbols + additional_symbols))
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
     scheduler = request.args.get('scheduler')
     if not scheduler:
         scheduler = ''
-    print('scheduler value', scheduler)
     for function_type in function_types:
         await get_datatypes_for_symbols(function_type, symbols)
 
-    print('to remove', financial_data_aggregator.symbols_to_remove)
+    print('symbols to remove due to errors in querying', financial_data_aggregator.symbols_to_remove)
     symbols = [symbol for symbol in symbols if symbol not in financial_data_aggregator.symbols_to_remove]
 
-
-    print('symbols now', symbols)
     await get_generic_symbol_data(symbols)
-    print('got generic symbol data', symbols)
+    print('generic symbol data for symbols successfully queried:', symbols)
     await get_market_data()
-    print('got market data', symbols)
+    print('market data successfully queried for symbols', symbols)
     if len(symbols) == 0:
         raise Exception('No symbols to loop through')
     for symbol in symbols:
@@ -137,7 +128,6 @@ async def main_page_finance_data():
                                                 financial_data_aggregator.global_data)
 
     signals = signal_calculator.get_sorted_dict()
-    financial_data_aggregate = financial_data_aggregator.financial_data_aggregate
     # Convert signals to JSON format
     signals_json = json.dumps(signals)
 
@@ -158,7 +148,15 @@ async def main_page_finance_data():
     except IOError as e:
         print("Error saving signals to file:", e)
 
-    response = make_response('Success! Redirecting...', 200)
+    links = get_links_from_static()
+    production_html_homepage = render_template('homepage.html', links=links, prod=True)
+    try:
+        with open('static/index.html', 'w') as f:
+            f.write(production_html_homepage)
+        print('generated index.html file')
+    except IOError as e:
+        print("Error generating index.html file:", e)
+
     # Redirect to another route
     if scheduler != '':
         redirect_route = '/signals?scheduler=' + scheduler

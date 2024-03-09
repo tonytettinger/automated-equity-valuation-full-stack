@@ -111,6 +111,7 @@ class FinancialDataTypeSwitch:
             print('market CAPITALIZATION is ', data['MarketCapitalization'])
             print('current aggregate for ', symbol, ' is ', self.financial_data_aggregate)
             self.add_to_financial_data_aggregate('MARKET_CAPITALIZATION', data['MarketCapitalization'])
+            self.add_to_financial_data_aggregate('SHARES_OUTSTANDING', data['SharesOutstanding'])
             for key, value in ADDITIONAL_OVERVIEW_DATA:
                 self.add_to_financial_data_aggregate(key, data[key])
 

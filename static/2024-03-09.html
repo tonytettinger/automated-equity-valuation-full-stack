@@ -21,8 +21,16 @@
 <body class="bg-gray-100 p-8">
     <div class="container mx-auto">
         <header class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold">Summary and analysis of selected stocks based on DCF signal</h1> <a href="../"><button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4 ml-4">Go Back</button></a></header>
-
-        
+<div class="mb-4">
+  <p class="font-semibold mb-2">Sentiment:</p>
+  <p class="text-gray-600">
+    x ≤ -0.35: <span class="text-red-500">Bearish;</span>
+    -0.35 &lt; x ≤ -0.15: <span class="text-orange-500">Somewhat-Bearish;</span>
+    -0.15 &lt; x &lt; 0.15: <span class="text-gray-500">Neutral;</span>
+    0.15 ≤ x &lt; 0.35: <span class="text-green-500">Somewhat_Bullish;</span>
+    x ≥ 0.35: <span class="text-green-800">Bullish</span>
+  </p>
+</div>        
         <div class="flex flex-wrap justify-between mb-12">
             <div class="w-full md:w-1/2 lg:w-1/3 px-4">
                 <div id="dcf-data-MTCH" class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
@@ -32,6 +40,7 @@
                     <p class="mb-2"><b>Difference between Market Capitalization and DCF:</b> <span>3.15</span></p>
                     <p class="mb-2"><b>Percentage difference between DCF and Market Capitalization:</b> <span>34.63%</span></p>
                     <p><b>Latest queried price:</b> <span>33.9</span></p>
+                    <p><b>DCF price:</b> <span>45.64</span></p>
                     <p><a href="https://finance.yahoo.com/quote/MTCH" class="text-blue-500">Link on Yahoo Finance</a></p>
                 </div>
                 <div class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
@@ -65,7 +74,7 @@
                     <h3 class="text-lg font-semibold mb-4">News <span class="text-gray-600">(overall news sentiment score: 0.07)</span></h3>
                     <div class="space-y-4">
                         <select onchange="window.open(this.value,'_blank')" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-200">
-                            <option disabled selected>Select a news</option>
+                            <option disabled selected>Select a news article</option>
                             
                                 <option value="https://www.barrons.com/news/england-and-new-zealand-ring-changes-for-crunch-3rd-t20-e7fd0be3">England And New Zealand Ring Changes For Crunch 3rd T20 - Source Barrons - Sentiment 0.501813</option>
                             
@@ -131,6 +140,7 @@
                     <p class="mb-2"><b>Difference between Market Capitalization and DCF:</b> <span>56.78</span></p>
                     <p class="mb-2"><b>Percentage difference between DCF and Market Capitalization:</b> <span>422.12%</span></p>
                     <p><b>Latest queried price:</b> <span>56.15</span></p>
+                    <p><b>DCF price:</b> <span>1270.49</span></p>
                     <p><a href="https://finance.yahoo.com/quote/ZG" class="text-blue-500">Link on Yahoo Finance</a></p>
                 </div>
                 <div class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
@@ -218,6 +228,7 @@
                     <p class="mb-2"><b>Difference between Market Capitalization and DCF:</b> <span>19.71</span></p>
                     <p class="mb-2"><b>Percentage difference between DCF and Market Capitalization:</b> <span>65.75%</span></p>
                     <p><b>Latest queried price:</b> <span>30.74</span></p>
+                    <p><b>DCF price:</b> <span>50.78</span></p>
                     <p><a href="https://finance.yahoo.com/quote/HPQ" class="text-blue-500">Link on Yahoo Finance</a></p>
                 </div>
                 <div class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
@@ -251,7 +262,7 @@
                     <h3 class="text-lg font-semibold mb-4">News <span class="text-gray-600">(overall news sentiment score: 0.12)</span></h3>
                     <div class="space-y-4">
                         <select onchange="window.open(this.value,'_blank')" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-200">
-                            <option disabled selected>Select a news</option>
+                            <option disabled selected>Select a news article</option>
                             
                                 <option value="https://www.zacks.com/stock/news/2238248/hewlett-packard-hpq-unveils-solutions-for-its-partners">Hewlett Packard  ( HPQ )  Unveils Solutions for Its Partners - Source Zacks Commentary - Sentiment 0.107538</option>
                             
@@ -333,6 +344,7 @@
                     <p class="mb-2"><b>Difference between Market Capitalization and DCF:</b> <span>1557.55</span></p>
                     <p class="mb-2"><b>Percentage difference between DCF and Market Capitalization:</b> <span>848.89%</span></p>
                     <p><b>Latest queried price:</b> <span>73.55</span></p>
+                    <p><b>DCF price:</b> <span>696.41</span></p>
                     <p><a href="https://finance.yahoo.com/quote/BABA" class="text-blue-500">Link on Yahoo Finance</a></p>
                 </div>
                 <div class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
@@ -366,7 +378,7 @@
                     <h3 class="text-lg font-semibold mb-4">News <span class="text-gray-600">(overall news sentiment score: 0.08)</span></h3>
                     <div class="space-y-4">
                         <select onchange="window.open(this.value,'_blank')" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-200">
-                            <option disabled selected>Select a news</option>
+                            <option disabled selected>Select a news article</option>
                             
                                 <option value="https://www.fool.com/investing/2024/03/08/billionaire-david-tepper-nvidia-ai-stocks/">Billionaire David Tepper Slashed His Position in Nvidia. Here Are the Artificial Intelligence  ( AI )  Stocks He Bought Instead. - Source Motley Fool - Sentiment 0.14826</option>
                             
@@ -456,6 +468,7 @@
                     <p class="mb-2"><b>Difference between Market Capitalization and DCF:</b> <span>68.23</span></p>
                     <p class="mb-2"><b>Percentage difference between DCF and Market Capitalization:</b> <span>34.04%</span></p>
                     <p><b>Latest queried price:</b> <span>49.5</span></p>
+                    <p><b>DCF price:</b> <span>66.35</span></p>
                     <p><a href="https://finance.yahoo.com/quote/CSCO" class="text-blue-500">Link on Yahoo Finance</a></p>
                 </div>
                 <div class="bg-blue-100 border-solid border-2 border-black rounded p-4 mb-4">
@@ -489,7 +502,7 @@
                     <h3 class="text-lg font-semibold mb-4">News <span class="text-gray-600">(overall news sentiment score: 0.21)</span></h3>
                     <div class="space-y-4">
                         <select onchange="window.open(this.value,'_blank')" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-200">
-                            <option disabled selected>Select a news</option>
+                            <option disabled selected>Select a news article</option>
                             
                                 <option value="https://www.benzinga.com/news/24/03/37557834/cisco-robinhood-and-2-other-stocks-insiders-are-selling">Cisco, Robinhood And 2 Other Stocks Insiders Are Selling - Cisco Systems  ( NASDAQ:CSCO ) , Air Lease  ( NYSE:AL )  - Source Benzinga - Sentiment 0.347572</option>
                             

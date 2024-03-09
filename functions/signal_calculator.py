@@ -91,7 +91,7 @@ class CalculateSignal:
             await self.calc_dfc(symbol, period_number, data)
             self.add_sorted_dict_by_category('MARKET_CAP')
         except Exception as e:
-            print('Exception occured during signal calculations: ' + str(e), 'for symbol:', symbol)
+            print('Exception occurred during signal calculations: ' + str(e), 'for symbol:', symbol)
             return
 
     # Calculate the average Free Cash Flow to Equity / Net Income ratio for the time period
@@ -195,6 +195,7 @@ class CalculateSignal:
         print(diff, 'difference is')
         percentage_diff_dcf_market_cap = dcf / market_cap - 1
         self.signals[symbol]['DCF'] = round(dcf / 1E9, 2)
+        self.signals[symbol]['DCF_PRICE_PER_SHARE'] = round(dcf / float(data[symbol]['SHARES_OUTSTANDING']), 2)
         self.signals[symbol]['DIFF'] = round(diff / 1E9, 2)
         self.signals[symbol]['MARKET_CAP'] = round(market_cap / 1E9, 2)
         self.signals[symbol]['PERCENTAGE_DIFF'] = round(percentage_diff_dcf_market_cap * 100, 2)
