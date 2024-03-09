@@ -107,10 +107,10 @@ async def get_biggest_movers_and_losers_symbols():
 
 
 @app.route('/check_stocks', methods=['GET'])
-@limiter.limit("30 per minute")
+@limiter.limit("20 per minute")
 async def main_page_finance_data():
-    base_symbols = ['HPQ']
-    additional_symbols = []
+    base_symbols = ['HPQ', 'CSCO', 'MSFT', 'AAPL', 'GOOGL', 'IBM', 'TSLA', 'BYD', 'LICY', 'AMYZF', 'UMICY']
+    additional_symbols = await get_tech_stock_market_movers()
     print('additional symbols are', additional_symbols)
     symbols = list(set(base_symbols + additional_symbols))
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
@@ -160,7 +160,10 @@ async def main_page_finance_data():
 
     response = make_response('Success! Redirecting...', 200)
     # Redirect to another route
-    redirect_route = '/signals?scheduler=' + scheduler
+    if scheduler != '':
+        redirect_route = '/signals?scheduler=' + scheduler
+    else:
+        redirect_route = '/signals'
     return redirect(redirect_route)
 
 

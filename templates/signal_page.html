@@ -12,11 +12,18 @@
     {% else %}
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     {% endif %}
+<style>
+    canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+</style>
 </head>
 
 <body class="bg-gray-100 p-8">
     <div class="container mx-auto">
-        <h1 class="text-3xl font-bold mb-8">Financial Summary</h1>
+        <header class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold">Summary and analysis of selected stocks based on DCF signal</h1> <a href="../"><button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4 ml-4">Go Back</button></a></header>
+
         {% for company in signals %}
         <div class="flex flex-wrap justify-between mb-12">
             <div class="w-full md:w-1/2 lg:w-1/3 px-4">
@@ -39,19 +46,21 @@
                 </div>
             </div>
             <div class="w-full md:w-1/2 lg:w-2/3 px-4">
+                {% if signals[company]['NEWS']|length > 0 %}
                 <div class="bg-white shadow-md rounded-lg px-4 py-6 mb-4">
                     <h3 class="text-lg font-semibold mb-4">News <span class="text-gray-600">(overall news sentiment score: {{ signals[company]['SENTIMENT_AVG'] }})</span></h3>
-                    <div class="space-y-4 border-solid border-2 border-black">
+                    <div class="space-y-4">
                         <select onchange="window.open(this.value,'_blank')" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-200">
-                            <option disabled selected>Select a news</option>
+                            <option disabled selected>Select a news article</option>
                             {% for news in signals[company]['NEWS'] %}
                                 <option value="{{ news["url"] }}">{{ news['title'] }} - Source {{ news['source'] }} - Sentiment {{ news["ticker_sentiment"][0]["ticker_sentiment_score"] }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
-                <div class="bg-white shadow-md rounded-lg px-4 py-6">
-                    <canvas id="macdChart-{{ company }}"></canvas>
+                {% endif %}
+                <div class="bg-white shadow-md rounded-lg px-4 py-6 w-full">
+                    <canvas class="w-full h-auto" id="macdChart-{{ company }}"></canvas>
                     <script>
                         var ctx{{ company }} = document.getElementById('macdChart-{{ company }}');
                         var macdData{{ company }} = JSON.parse('{{ signals[company]['MACD'] | tojson | safe }}');
@@ -89,7 +98,9 @@
                                         display: true,
                                         text: 'MACD Chart for {{ company }}' // Title text
                                     }
-                                }
+                                },
+                                                             maintainAspectRatio: false,
+
                             }
                         });
                     </script>
@@ -97,6 +108,11 @@
             </div>
         </div>
         {% endfor %}
+<script>
+function goBack() {
+  window.history.back();
+}
+</script>
     </div>
 </body>
 
