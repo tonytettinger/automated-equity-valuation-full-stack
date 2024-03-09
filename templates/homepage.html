@@ -19,6 +19,9 @@
 
     <ul class="text-lg text-center">
         {% for file, name in links | sort(reverse=True) %}
+            {% if prod %}
+            <li class="mb-2"><a href="./{{file}}" class="text-blue-500 hover:text-blue-700">{{ name }}</a></li>
+            {% endif %}
             <li class="mb-2"><a href="{{ url_for('static', filename=file) }}" class="text-blue-500 hover:text-blue-700">{{ name }}</a></li>
         {% endfor %}
     </ul>
