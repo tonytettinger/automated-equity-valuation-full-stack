@@ -1,6 +1,6 @@
 import requests
 
-def notify():
+def notify_slack_channel():
     # Define the Slack webhook URL
     webhook_url = "https://hooks.slack.com/services/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"
 
