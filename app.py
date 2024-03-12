@@ -105,11 +105,9 @@ async def get_biggest_movers_and_losers_symbols():
 @app.route('/check_stocks', methods=['GET'])
 @limiter.limit("20 per minute")
 async def main_page_finance_data():
-    base_symbols = ['HPQ', 'CSCO']
-    market_movers = await get_tech_stock_market_movers()
-    biggest_losers = await get_biggest_losers()
+    base_symbols = ['RUN', 'BABA']
     print('biggest losers are')
-    symbols = list(set(base_symbols + market_movers + biggest_losers))
+    symbols = list(set(base_symbols))
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
     scheduler = request.args.get('scheduler')
     if not scheduler:
