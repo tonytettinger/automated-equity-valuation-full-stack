@@ -7,13 +7,14 @@ from flask import Flask, render_template, request, redirect, url_for, make_respo
 from datetime import datetime
 import asyncio
 
-from functions.additional_tickers import get_tech_stock_market_movers
+from functions.additional_tickers import get_tech_stock_market_movers, get_biggest_losers
 from functions.financial_data_aggregator import *
 from functions.get_links_from_static import get_links_from_static
 from functions.settings import get_variables_from_db
 
 from functions.signal_calculator import CalculateSignal
-from scheduler.notifications import notify
+from scheduler.github import add_all_in_static_and_commit
+from scheduler.notifications import notify_slack_channel
 from sql.helpers import database_path, database_access
 
 load_dotenv()
@@ -104,9 +105,11 @@ async def get_biggest_movers_and_losers_symbols():
 @app.route('/check_stocks', methods=['GET'])
 @limiter.limit("20 per minute")
 async def main_page_finance_data():
-    base_symbols = ['HPQ', 'CSCO', 'MSFT', 'AAPL', 'GOOGL', 'IBM', 'TSLA', 'BYD', 'LICY', 'AMYZF', 'UMICY']
-    additional_symbols = await get_tech_stock_market_movers()
-    symbols = list(set(base_symbols + additional_symbols))
+    base_symbols = ['HPQ', 'CSCO']
+    market_movers = await get_tech_stock_market_movers()
+    biggest_losers = await get_biggest_losers()
+    print('biggest losers are')
+    symbols = list(set(base_symbols + market_movers + biggest_losers))
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
     scheduler = request.args.get('scheduler')
     if not scheduler:
@@ -207,7 +210,8 @@ async def signals():
     print('scheduler value in signals endpoint', scheduler)
 
     if scheduler == 'true':
-        notify()
+        add_all_in_static_and_commit()
+        notify_slack_channel()
 
     development_html_signals = render_template('signal_page.html', data=financial_data_aggregate,
                                                signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA,
