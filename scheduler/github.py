@@ -5,9 +5,10 @@ import sh
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 # https://stackoverflow.com/questions/1456269/python-git-module-experiences
-def add_all_and_commit():
-
+def add_all_in_static_and_commit():
+    print('starting to commit files')
     git = sh.git.bake(_cwd=current_directory)
+    print('current working dir', current_directory)
     time_string = datetime.today().strftime('%Y-%m-%d')
 
     print(git.status())
@@ -16,6 +17,4 @@ def add_all_and_commit():
     print(git.commit(m=f'{time_string} commit message'))
     print(git.push())
     print(git.status())
-
-add_all_and_commit()
-print('Successfully committed files to GitHub')
+    print('Successfully committed files to GitHub')
