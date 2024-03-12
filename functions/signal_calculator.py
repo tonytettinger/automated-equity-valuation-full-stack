@@ -167,12 +167,18 @@ class CalculateSignal:
         print('debt/equity cost', debt_cost, ':', equity_cost)
         wacc = debt_weight * debt_cost * (1 - tax_rate) + equity_weight * equity_cost
         print('wacc', wacc)
+        if wacc < PERPETUAL_GROWTH_ESTIMATE:
+            raise Exception('WACC is less than perpetual growth rate estimate')
         self.signals[symbol]['WACC'] = wacc
 
     def calc_terminal_value(self, symbol):
         base_value_last_year_estimate = self.signals[symbol]['PROJECTED_FREE_CASH_FLOWS'][-1]
+        if base_value_last_year_estimate <= 0:
+            raise Exception('base value to calculate terminal value is negative')
+        print('base_value_last_year_estimate', base_value_last_year_estimate)
         terminal_value = base_value_last_year_estimate * (1 + PERPETUAL_GROWTH_ESTIMATE) / (
                 self.signals[symbol]['WACC'] - PERPETUAL_GROWTH_ESTIMATE)
+        print('terminal value is', terminal_value)
         if terminal_value < 0:
             self.signals[symbol]['TERMINAL_VALUE'] = 0
         else:
