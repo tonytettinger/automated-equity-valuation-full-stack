@@ -7,7 +7,7 @@ AFTER_MARKET_CLOSING_TIME = '16:01'
 
 
 def request_local_endpoint():
-    endpoint = 'http://127.0.0.1:5000/check_stocks?scheduler=true'
+    endpoint = 'http://127.0.0.1:8080/check_stocks?scheduler=true'
     try:
         response = requests.get(endpoint)
         if response.status_code == 200:
