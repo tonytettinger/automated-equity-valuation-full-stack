@@ -34,14 +34,7 @@ def calculate_percentage_difference(array):
     print('percentage_differences:', percentage_differences)
     average = safe_division(sum(percentage_differences), len(percentage_differences))
     print('average:', average)
-    if average <= 0:
-        maxDif = max(percentage_differences)
-        if maxDif < 0:
-            return 0
-        else:
-            return max(percentage_differences)
-    else:
-        return average
+    return average
 
 
 def calculate_growth(initial_value, growth_rate, periods):
@@ -75,6 +68,7 @@ class CalculateSignal:
             sorted(self.signals.items(), key=lambda x: getitem(x[1], 'MARKET_CAP')))
 
     async def do_calculations(self, symbol, data, global_data):
+        self.signals[symbol]['LATEST_PRICE'] = round(float(data[symbol]['LATEST_PRICE']),2)
         total_net_income_periods = list(map(int, data[symbol]['INCOME_STATEMENT']['netIncome']))
         total_revenue_periods = list(map(int, data[symbol]['INCOME_STATEMENT']['totalRevenue']))
         period_number = len(total_net_income_periods)
@@ -88,24 +82,29 @@ class CalculateSignal:
             self.calc_projected_free_cash_flow(symbol, total_revenue_periods, 4)
             self.calc_wacc(data, symbol, global_data, total_debt)
             self.calc_terminal_value(symbol)
-            await self.calc_dfc(symbol, period_number, data)
+            await self.calc_dcf(symbol, period_number, data)
             self.add_sorted_dict_by_category('MARKET_CAP')
         except Exception as e:
             print('Exception occurred during signal calculations: ' + str(e), 'for symbol:', symbol)
-            return
+            del self.signals[symbol]
 
     # Calculate the average Free Cash Flow to Equity / Net Income ratio for the time period
     def calc_fcfe_net_income_ratio(self, symbol, data, total_net_income_periods):
         print("Calculating FCFE net income")
         total_cash_flow_periods = list(map(int, data[symbol]['CASH_FLOW']['operatingCashflow']))
         capex_periods = list(map(int, data[symbol]['CASH_FLOW']['capitalExpenditures']))
-
+        print('total net income period', total_net_income_periods)
+        print('total cash flow period', total_cash_flow_periods)
+        print('capex periods', capex_periods)
         fcfe_net_income_ratio = [safe_division((total_cash_flow - capex), total_net_income) for
                                  total_cash_flow, capex, total_net_income in
                                  zip(total_cash_flow_periods, capex_periods, total_net_income_periods)]
-
+        print('fcfe net income array', fcfe_net_income_ratio)
+        net_income_ratio_num = sum(fcfe_net_income_ratio) / len(fcfe_net_income_ratio)
         self.signals[symbol]['FCFE_NET_INCOME_RATIO'] = sum(fcfe_net_income_ratio) / len(fcfe_net_income_ratio)
-
+        if net_income_ratio_num <= 0:
+            raise Exception
+        print('FCFE net income ratio', self.signals[symbol]['FCFE_NET_INCOME_RATIO'])
     # Calculate the net income margin and take the minimum for the most conservative estimate
     def calc_net_income_margin(self, symbol, total_net_income_periods, total_revenue_periods):
 
@@ -179,7 +178,7 @@ class CalculateSignal:
         else:
             self.signals[symbol]['TERMINAL_VALUE'] = terminal_value
 
-    async def calc_dfc(self, symbol, period_number, data):
+    async def calc_dcf(self, symbol, period_number, data):
         return_multiplier = self.signals[symbol]['WACC'] + 1
         discount_rates = generate_interest_rates(return_multiplier, period_number)
         fcfe_values_to_discount = self.signals[symbol]['PROJECTED_FREE_CASH_FLOWS'] + [
@@ -195,24 +194,21 @@ class CalculateSignal:
         print(diff, 'difference is')
         percentage_diff_dcf_market_cap = dcf / market_cap - 1
         self.signals[symbol]['DCF'] = round(dcf / 1E9, 2)
-        self.signals[symbol]['DCF_PRICE_PER_SHARE'] = round(dcf / float(data[symbol]['SHARES_OUTSTANDING']), 2)
+        self.signals[symbol]['DCF_PRICE_PER_SHARE'] = round(self.signals[symbol]['LATEST_PRICE'] * (1+percentage_diff_dcf_market_cap) , 2)
         self.signals[symbol]['DIFF'] = round(diff / 1E9, 2)
         self.signals[symbol]['MARKET_CAP'] = round(market_cap / 1E9, 2)
         self.signals[symbol]['PERCENTAGE_DIFF'] = round(percentage_diff_dcf_market_cap * 100, 2)
         is_over_safety_margin = percentage_diff_dcf_market_cap > SAFETY_MARGIN
         if not is_over_safety_margin:
-            del self.signals[symbol]
-        else:
-            await self.get_MACD(symbol)
-            self.signals[symbol]['LATEST_PRICE'] = data[symbol]['LATEST_PRICE']
-            await self.get_news(symbol)
+            raise Exception
+        await self.get_MACD(symbol)
+        await self.get_news(symbol)
 
     async def get_MACD(self, symbol):
         api_url = f'https://www.alphavantage.co/query?function=MACD&symbol={symbol}&interval=daily&series_type=open&apikey={self.api_key}'
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
-            print('macd data is', data, symbol)
             if len(data) == 0:
                 self.signals[symbol]['MACD'] = {}
             else:
@@ -225,7 +221,6 @@ class CalculateSignal:
         response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
-            print('news data for', symbol, 'is ', data)
             if len(data) == 0:
                 self.signals[symbol]['NEWS'] = {}
                 self.signals[symbol]['SENTIMENT_AVG'] = {}
@@ -239,17 +234,15 @@ class CalculateSignal:
                             current_symbol = ticker_sentiment["ticker"]
                             if current_symbol == symbol:
                                 symbol_sentiment.append(float(ticker_sentiment["ticker_sentiment_score"]))
-                                print('ticker sentiment', ticker_sentiment)
                                 if float(ticker_sentiment["relevance_score"]) >= 0.25:
                                     news_feed_to_add.append(news)
                     except:
                         print('error in getting news sentiment')
                         continue
-                sentiment_average = round(sum(symbol_sentiment)/len(symbol_sentiment), 2)
+                sentiment_average = round(safe_division(sum(symbol_sentiment),len(symbol_sentiment)), 2)
 
                 self.signals[symbol]['NEWS'] = news_feed_to_add
                 self.signals[symbol]['SENTIMENT_AVG'] = sentiment_average
-                print('news feed to add', news_feed_to_add)
         else:
             self.signals[symbol]['NEWS'] = {}
             self.signals[symbol]['SENTIMENT_AVG'] = {}
