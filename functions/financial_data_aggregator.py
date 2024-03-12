@@ -31,9 +31,6 @@ def add_years_data(sub_category_dict, current_year_data):
             sub_category_dict[key].append(int(current_year_data[key]))
 
 
-
-
-
 class FinancialDataTypeSwitch:
     def __init__(self):
         self.financial_data_aggregate = {}
@@ -51,7 +48,7 @@ class FinancialDataTypeSwitch:
                 current_year_data = data['annualReports'][idx]
                 add_years_data(sub_category_dict, current_year_data)
             except:
-                print("removing symbol because of error in getting sub-category",)
+                print("removing symbol because of error in getting sub-category", )
                 self.add_symbols_to_remove(self.current_company)
                 continue
         return sub_category_dict
@@ -69,7 +66,8 @@ class FinancialDataTypeSwitch:
             if value != 'None' or value != '':
                 self.financial_data_aggregate[self.current_company][key] = value
             else:
-                print('company', self.current_company, 'removed from queried companies in add_to_financial_data_aggregate')
+                print('company', self.current_company,
+                      'removed from queried companies in add_to_financial_data_aggregate')
                 self.add_symbols_to_remove(self.current_company)
         except:
             print("error in adding data to financial", key, value)
@@ -127,6 +125,7 @@ class FinancialDataTypeSwitch:
                 data = response.json()
                 latest_daily_price_date, latest_daily_price = next(iter(data["Time Series (Daily)"].items()))
                 self.add_to_financial_data_aggregate('LATEST_PRICE', latest_daily_price["4. close"])
+                print('latest price dded', latest_daily_price["4. close"])
                 self.add_to_financial_data_aggregate('LATEST_PRICE_DATE', latest_daily_price_date)
             else:
                 print('removing symbol due to failed to get price data')
@@ -157,17 +156,21 @@ class FinancialDataTypeSwitch:
         keys = ['operatingCashflow', 'capitalExpenditures']
 
         self.add_to_financial_data_aggregate('CASH_FLOW',
-                                             self.get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
+                                             self.get_sub_category_data(data=data, year_range=self.year_range,
+                                                                        keys=keys))
 
     def income_statement(self, data):
-        keys = ['totalRevenue', 'netIncome', 'incomeBeforeTax', 'interestAndDebtExpense', 'incomeTaxExpense', 'interestExpense']
+        keys = ['totalRevenue', 'netIncome', 'incomeBeforeTax', 'interestAndDebtExpense', 'incomeTaxExpense',
+                'interestExpense']
         self.add_to_financial_data_aggregate('INCOME_STATEMENT',
-                                             self.get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
+                                             self.get_sub_category_data(data=data, year_range=self.year_range,
+                                                                        keys=keys))
 
     def balance_sheet(self, data):
-        keys = ['commonStockSharesOutstanding','shortTermDebt', 'longTermDebt']
+        keys = ['commonStockSharesOutstanding', 'shortTermDebt', 'longTermDebt']
         self.add_to_financial_data_aggregate('BALANCE_SHEET',
-                                             self.get_sub_category_data(data=data, year_range=self.year_range, keys=keys))
+                                             self.get_sub_category_data(data=data, year_range=self.year_range,
+                                                                        keys=keys))
 
 
 financial_data_aggregator = FinancialDataTypeSwitch()
