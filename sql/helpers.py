@@ -37,10 +37,11 @@ class DatabaseAccess:
 
     def update_selected_value(self):
         new_value = request.form['new_value']
+        variable_type = request.form['variable_type']
         # Update the SQL value
         conn = sqlite3.connect(database_path)
         cursor = conn.cursor()
-        cursor.execute("UPDATE finvars SET market_return = ?", (new_value,))
+        cursor.execute(f"UPDATE finvars SET {variable_type} = ?", (new_value,))
         conn.commit()
         conn.close()
 
