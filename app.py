@@ -152,6 +152,7 @@ async def main_page_finance_data():
         print("Error saving signals to file:", e)
 
     links = get_links_from_static()
+    print('links are', links)
     production_html_homepage = render_template('homepage.html', links=links, prod=True)
     try:
         with open('static/index.html', 'w') as f:
@@ -160,9 +161,11 @@ async def main_page_finance_data():
     except IOError as e:
         print("Error generating index.html file:", e)
 
+    print('scheduler is: ', scheduler)
     # Redirect to another route
     if scheduler != '':
         redirect_route = '/signals?scheduler=' + scheduler
+        print('redirect route with scheduler', scheduler)
     else:
         redirect_route = '/signals'
     return redirect(redirect_route)
