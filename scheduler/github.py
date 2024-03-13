@@ -14,7 +14,7 @@ def add_all_in_static_and_commit():
     print(git.status())
     print(current_directory)
     print(git.add('../static/'))
-    print(git.commit(m=f'{time_string} commit message'))
+    print(git.commit(m=f'{time_string} new html files have been generated after running scheduled checks'))
     print(git.push())
     print(git.status())
     print('Successfully committed files to GitHub')
