@@ -15,7 +15,7 @@ def request_local_endpoint():
         print(f"Error occurred while requesting local endpoint: {e}")
 
 
-schedule.every().day.at(AFTER_MARKET_CLOSING_TIME, TIME_ZONE).do(request_local_endpoint())
+schedule.every().day.at(AFTER_MARKET_CLOSING_TIME, TIME_ZONE).do(request_local_endpoint)
 
 while True:
     schedule.run_pending()
