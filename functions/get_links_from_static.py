@@ -2,7 +2,7 @@ import os
 
 
 def get_links_from_static():
-    static = os.listdir('static')
+    static = os.listdir('../static')
     links = []
     for file in static:
         if file.startswith('index'):
