@@ -213,8 +213,13 @@ async def signals():
     print('scheduler value in signals endpoint', scheduler)
 
     if scheduler == 'true':
-        add_all_in_static_and_commit()
-        notify_slack_channel()
+        signal_keys = signals.keys()  # Get all the keys from the dictionary
+        if signal_keys:  # Check if the keys are not empty
+            print("The signals dictionary has tickers.")
+            print("The signal keys are:", signal_keys)
+            add_all_in_static_and_commit()
+            notify_slack_channel(signal_keys)
+
 
     development_html_signals = render_template('signal_page.html', data=financial_data_aggregate,
                                                signals=signals, additional_overview_data=ADDITIONAL_OVERVIEW_DATA,
