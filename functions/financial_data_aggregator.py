@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 
 from functions.helpers import CustomException
+from functions.check_limit import check_limit
 
 load_dotenv()
 
@@ -18,6 +19,7 @@ ADDITIONAL_OVERVIEW_DATA = [
     ('PriceToSalesRatioTTM', 'Price to sales ratio (TTM)'),  # Converted to tuple format
     ('PriceToBookRatio', 'Price to book ratio')  # Converted to tuple format
 ]
+
 
 def create_empty_dict(keys_array):
     return {key: [] for key in keys_array}
@@ -79,6 +81,7 @@ class FinancialDataTypeSwitch:
         return self.global_data
 
     async def get_data(self, function_type, symbol):
+        check_limit()
         api_url = f'https://www.alphavantage.co/query?function={function_type}&symbol={symbol}&apikey={self.api_key}'
         response = requests.get(api_url)
         self.set_current_company(symbol)
@@ -99,6 +102,7 @@ class FinancialDataTypeSwitch:
             self.add_symbols_to_remove(symbol)
 
     async def get_overview_data(self, symbol):
+        check_limit()
         api_url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={self.api_key}'
         response = requests.get(api_url)
         self.current_company = symbol
@@ -117,6 +121,7 @@ class FinancialDataTypeSwitch:
             self.add_symbols_to_remove(symbol)
 
     async def get_price_data(self, symbol):
+        check_limit()
         try:
             api_url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&apikey={self.api_key}'
             response = requests.get(api_url)
@@ -135,6 +140,7 @@ class FinancialDataTypeSwitch:
             self.add_symbols_to_remove(symbol)
 
     async def get_treasury_data(self):
+        check_limit()
         api_url = f'https://www.alphavantage.co/query?function=TREASURY_YIELD&apikey={self.api_key}'
         response = requests.get(api_url)
         if response.status_code == 200:

@@ -71,3 +71,5 @@ wrapt==1.16.0
 yagmail==0.15.293
 zipp==3.17.0
 zope.interface==6.2
+
+ratelimit~=2.2.1
