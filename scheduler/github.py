@@ -11,7 +11,6 @@ def add_all_in_static_and_commit():
     print('current working dir', current_directory)
     time_string = datetime.today().strftime('%Y-%m-%d')
 
-    print(git.pull())
     print(git.status())
     print(current_directory)
     print(git.add('../static/'))
