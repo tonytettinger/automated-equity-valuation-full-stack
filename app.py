@@ -151,16 +151,6 @@ async def main_page_finance_data():
     except IOError as e:
         print("Error saving signals to file:", e)
 
-    links = get_links_from_static()
-    print('links are', links)
-    production_html_homepage = render_template('homepage.html', links=links, prod=True)
-    try:
-        with open('static/index.html', 'w') as f:
-            f.write(production_html_homepage)
-        print('generated index.html file')
-    except IOError as e:
-        print("Error generating index.html file:", e)
-
     print('scheduler is: ', scheduler)
     # Redirect to another route
     if scheduler != '':
@@ -208,6 +198,16 @@ async def signals():
         print('PermissionError creating file:', e)
     except IOError as e:
         print('IOError creating file:', e)
+
+    links = get_links_from_static()
+    print('links are:', links)
+    production_html_homepage = render_template('homepage.html', links=links, prod=True)
+    try:
+        with open('static/index.html', 'w') as f:
+            f.write(production_html_homepage)
+        print('generated index.html file')
+    except IOError as e:
+        print("Error generating index.html file:", e)
 
     scheduler = request.args.get('scheduler')
     print('scheduler value in signals endpoint', scheduler)
