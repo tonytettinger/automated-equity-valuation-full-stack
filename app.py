@@ -1,9 +1,8 @@
 import json
-import sqlite3
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask import Flask, render_template, request, redirect, url_for, make_response
+from flask import Flask, render_template, request, redirect
 from datetime import datetime
 import asyncio
 
@@ -15,7 +14,7 @@ from functions.settings import get_variables_from_db
 from functions.signal_calculator import CalculateSignal
 from scheduler.github import add_all_in_static_and_commit
 from scheduler.notifications import notify_slack_channel
-from sql.helpers import database_path, database_access
+from sql.helpers import database_access
 
 load_dotenv()
 
@@ -32,11 +31,6 @@ limiter = Limiter(
 )
 
 signal_calculator = CalculateSignal()
-
-
-def get_html_files(folder):
-    html_files = [file for file in os.listdir(folder) if file.endswith('.html')]
-    return html_files
 
 
 @app.errorhandler(Exception)
@@ -57,7 +51,7 @@ def index():
     return development_html_homepage
 
 
-async def get_datatypes_for_symbols(function_type, stock_symbols):
+async def get_financial_category_for_symbols(function_type, stock_symbols):
     tasks = []
     for ticker in stock_symbols:
         tasks.append(financial_data_aggregator.get_data(function_type, ticker))
@@ -65,7 +59,7 @@ async def get_datatypes_for_symbols(function_type, stock_symbols):
     await asyncio.gather(*tasks)
 
 
-async def get_generic_symbol_data(symbols):
+async def get_data_for_symbol(symbols):
     tasks = []
     for symbol in symbols:
         tasks.append(financial_data_aggregator.get_overview_data(symbol))
@@ -81,47 +75,23 @@ async def get_market_data():
 def remove_non_alphanumeric(strings):
     return [''.join(char for char in string if char.isalnum()) for string in strings]
 
-
-async def get_biggest_movers_and_losers_symbols():
-    # Perform some asynchronous task
-    api_url = f'https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={os.getenv("ALPHA_VANTAGE_API_KEY")}'
-    response = requests.get(api_url)
-    if response.status_code == 200:
-        data = response.json()
-        if len(data) == 0:
-            return []
-        else:
-            most_traded = [entry["ticker"] for entry in data["most_actively_traded"]]
-            top_losers = [entry["ticker"] for entry in data["top_losers"]]
-            combined_array_most_traded_and_top_losers = list(set(most_traded + top_losers))
-            cleaned_combined_array = remove_non_alphanumeric(combined_array_most_traded_and_top_losers)
-            print('cleaned_combined_array', cleaned_combined_array)
-            return cleaned_combined_array
-    else:
-        print('additional tickers not found')
-        return []
-
-
 @app.route('/check_stocks', methods=['GET'])
-@limiter.limit("20 per minute")
 async def main_page_finance_data():
     base_symbols = ['MTCH', 'PYPL']
     market_movers = await get_tech_stock_market_movers()
     biggest_losers = await get_biggest_losers()
-    print('biggest losers are')
     symbols = list(set(base_symbols + market_movers + biggest_losers))
     function_types = ['CASH_FLOW', 'INCOME_STATEMENT', 'BALANCE_SHEET']
     scheduler = request.args.get('scheduler')
     if not scheduler:
         scheduler = ''
     for function_type in function_types:
-        await get_datatypes_for_symbols(function_type, symbols)
+        await get_financial_category_for_symbols(function_type, symbols)
 
     print('symbols to remove due to errors in querying', financial_data_aggregator.symbols_to_remove)
     symbols = [symbol for symbol in symbols if symbol not in financial_data_aggregator.symbols_to_remove]
 
-    await get_generic_symbol_data(symbols)
-    print('generic symbol data for symbols successfully queried:', symbols)
+    await get_data_for_symbol(symbols)
     await get_market_data()
     print('market data successfully queried for symbols', symbols)
     if len(symbols) == 0:
@@ -151,8 +121,6 @@ async def main_page_finance_data():
     except IOError as e:
         print("Error saving signals to file:", e)
 
-    print('scheduler is: ', scheduler)
-    # Redirect to another route
     if scheduler != '':
         redirect_route = '/signals?scheduler=' + scheduler
         print('redirect route with scheduler', scheduler)

@@ -3,7 +3,6 @@ import requests
 from dotenv import load_dotenv
 import os
 
-from functions.helpers import CustomException
 from functions.check_limit import check_limit
 
 load_dotenv()
@@ -11,13 +10,13 @@ load_dotenv()
 ADDITIONAL_OVERVIEW_DATA = [
     ('Description', 'Company description'),
     ('52WeekHigh', '52 week high'),
-    ('52WeekLow', '52 week low'),  # Converted to tuple format
-    ('AnalystTargetPrice', 'Analyst target price'),  # Converted to tuple format
-    ('PERatio', 'PE ratio'),  # Converted to tuple format
-    ('ForwardPE', 'Forward PE'),  # Converted to tuple format
-    ('ProfitMargin', 'Profit margin'),  # Converted to tuple format
-    ('PriceToSalesRatioTTM', 'Price to sales ratio (TTM)'),  # Converted to tuple format
-    ('PriceToBookRatio', 'Price to book ratio')  # Converted to tuple format
+    ('52WeekLow', '52 week low'),
+    ('AnalystTargetPrice', 'Analyst target price'),
+    ('PERatio', 'PE ratio'),
+    ('ForwardPE', 'Forward PE'),
+    ('ProfitMargin', 'Profit margin'),
+    ('PriceToSalesRatioTTM', 'Price to sales ratio (TTM)'),
+    ('PriceToBookRatio', 'Price to book ratio')
 ]
 
 
@@ -92,13 +91,10 @@ class FinancialDataTypeSwitch:
                 self.add_symbols_to_remove(symbol)
                 print(f"Stock {symbol} returned an empty dictionary response", symbol)
             else:
-                print('checking stock', symbol)
-                print('with function_type', function_type)
                 self.process_data(function_type, data)
         else:
             error = jsonify({'error': f'Failed to fetch {function_type} data for {symbol}'})
             print(error)
-            print('removing stock in get_data', symbol)
             self.add_symbols_to_remove(symbol)
 
     async def get_overview_data(self, symbol):
@@ -110,8 +106,6 @@ class FinancialDataTypeSwitch:
         if response.status_code == 200:
             data = response.json()
             self.add_to_financial_data_aggregate('BETA', data['Beta'])
-            print('market CAPITALIZATION is ', data['MarketCapitalization'])
-            print('current aggregate for ', symbol, ' is ', self.financial_data_aggregate)
             self.add_to_financial_data_aggregate('MARKET_CAPITALIZATION', data['MarketCapitalization'])
             self.add_to_financial_data_aggregate('SHARES_OUTSTANDING', data['SharesOutstanding'])
             for key, value in ADDITIONAL_OVERVIEW_DATA:
@@ -130,13 +124,12 @@ class FinancialDataTypeSwitch:
                 data = response.json()
                 latest_daily_price_date, latest_daily_price = next(iter(data["Time Series (Daily)"].items()))
                 self.add_to_financial_data_aggregate('LATEST_PRICE', latest_daily_price["4. close"])
-                print('latest price dded', latest_daily_price["4. close"])
                 self.add_to_financial_data_aggregate('LATEST_PRICE_DATE', latest_daily_price_date)
             else:
-                print('removing symbol due to failed to get price data')
+                print('removing symbol due to failing to get price data')
                 self.add_symbols_to_remove(symbol)
         except:
-            print('removing symbol due to failed to get price data')
+            print('removing symbol due to failing to get price data')
             self.add_symbols_to_remove(symbol)
 
     async def get_treasury_data(self):
@@ -153,7 +146,6 @@ class FinancialDataTypeSwitch:
     def process_data(self, function_type, data):
         default = "Incorrect data"
         try:
-            print('processing data')
             return getattr(self, str(function_type).lower(), lambda: default)(data)
         except:
             raise Exception(f"{function_type} processing had an error (process_data)")
